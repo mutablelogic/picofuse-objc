@@ -12,22 +12,7 @@ static NXStatic false_storage;
 
 @implementation NXNumberStatic
 
-- (id)retain {
-  return self;
-}
-
-- (void)release {
-  // It's never deallocated
-}
-
-- (id)autorelease {
-  return self;
-}
-
-- (void)dealloc {
-  sys_panicf("-[%s dealloc] can't be deallocated", object_getClassName(self));
-  [super dealloc];
-}
+NX_STATIC_METHODS
 
 @end
 

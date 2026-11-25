@@ -1,8 +1,10 @@
 #pragma once
 #include <Foundation/Foundation.h>
+#include <picofuse/sys.h>
 
 /*
- * Room for an instance of a small class, which is static and so isn't allocated
+ * Room for an instance of a small class, which is static and so isn't allocated, and
+ * has no header
  */
 typedef union {
   uint64_t align;
@@ -18,3 +20,25 @@ static inline id NXStaticInstance(NXStatic *storage, Class cls) {
   object_setClass(instance, cls);
   return instance;
 }
+
+/*
+ * The methods of a class whose instances are static. They're never deallocated, so
+ * they aren't retained.
+ */
+#define NX_STATIC_METHODS                                                      \
+  -(id)retain {                                                                \
+    return self;                                                               \
+  }                                                                            \
+  -(void)release {                                                             \
+  }                                                                            \
+  -(id)autorelease {                                                           \
+    return self;                                                               \
+  }                                                                            \
+  -(NXZone *)zone {                                                            \
+    return nil;                                                                \
+  }                                                                            \
+  -(void)dealloc {                                                             \
+    sys_panicf("-[%s dealloc] can't be deallocated",                           \
+               object_getClassName(self));                                     \
+    [super dealloc];                                                           \
+  }
