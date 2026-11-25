@@ -103,6 +103,9 @@ static inline NXAutoreleasePool **current_pool(void) {
     sys_panicf("-[NXAutoreleasePool addObject:] %s isn't an NXObject",
                object_getClassName(object));
   }
+  if (object_isKindOfClass(object, [NXAutoreleasePool class])) {
+    sys_panicf("-[NXAutoreleasePool addObject:] pools can't be added");
+  }
   if (_page == NULL || _page->count == PAGE_CAPACITY) {
     [self addPage];
   }
