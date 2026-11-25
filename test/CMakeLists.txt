@@ -182,3 +182,9 @@ objc_test(foundation_003
     foundation_003/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Durations.
+objc_test(foundation_006
+    foundation_006/main.m
+    LIBRARIES picofuse-objc-foundation
+)
