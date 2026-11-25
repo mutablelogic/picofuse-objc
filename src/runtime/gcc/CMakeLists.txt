@@ -9,7 +9,6 @@ add_library(${NAME} STATIC
     message.c
     module.c
     mutex.c
-    NXConstantString.m
     Object.m
     Protocol.m
     protocol.c
@@ -25,7 +24,6 @@ else()
     # Without -fobjc-exceptions, GCC doesn't accept @synchronized
     set(OBJC_FLAGS -fgnu-runtime -fobjc-exceptions)
 endif()
-list(APPEND OBJC_FLAGS -fconstant-string-class=NXConstantString)
 target_compile_options(${NAME} PUBLIC "$<$<COMPILE_LANGUAGE:OBJC>:${OBJC_FLAGS}>")
 
 # Install alongside picofuse, for the same board or host
