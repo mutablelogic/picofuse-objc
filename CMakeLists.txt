@@ -80,6 +80,9 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/install.cmake)
 # Objective-C runtime
 add_subdirectory(src/runtime/gcc)
 
+# Foundation
+add_subdirectory(src/Foundation)
+
 # Tests
 include(CTest)
 add_subdirectory(test)
