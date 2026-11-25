@@ -11,6 +11,27 @@
 - (void)dealloc;
 @end
 
+///////////////////////////////////////////////////////////////////////////////
+// PRIVATE METHODS
+
+// clang warns that this isn't lock-free on an RP2040, where pico-sdk implements it with
+// a spin lock
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
+
+// Decrease the retain count, and return it. What other threads did with the object
+// before they released it is seen by the one that deallocates it, unlike with
+// sys_atomic_dec().
+static inline uint32_t release_count(NXObjectHeader *header) {
+  return __atomic_sub_fetch(&header->retain.value, 1, __ATOMIC_ACQ_REL);
+}
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 @implementation NXObject
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,16 +90,12 @@
 }
 
 - (void)release {
-  // What other threads did with the object before they released it has to be
-  // seen by the one that deallocates it
-  __atomic_thread_fence(__ATOMIC_RELEASE);
-  uint32_t count = sys_atomic_dec(&NXObjectGetHeader(self)->retain);
+  uint32_t count = release_count(NXObjectGetHeader(self));
   if (count == UINT32_MAX) {
     sys_panicf("-[%s release] called with a retain count of zero",
                object_getClassName(self));
   }
   if (count == 0) {
-    __atomic_thread_fence(__ATOMIC_ACQUIRE);
     [self dealloc];
   }
 }
@@ -91,6 +108,15 @@
   }
   [pool addObject:self];
   return self;
+}
+
+
+- (NXString *)description {
+  return [NXString stringWithCString:object_getClassName(self)];
+}
+
++ (NXString *)description {
+  return [NXString stringWithCString:class_getName(self)];
 }
 
 @end

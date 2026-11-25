@@ -75,4 +75,15 @@
  */
 - (id)autorelease;
 
+/**
+ * @brief Returns a string which describes the instance, for logging. Unless it's
+ * overridden, that's the name of its class.
+ */
+- (NXString *)description;
+
+/**
+ * @brief Returns the name of the class.
+ */
++ (NXString *)description;
+
 @end

@@ -28,4 +28,11 @@ static NXStatic null_storage;
 
 NX_STATIC_METHODS
 
+///////////////////////////////////////////////////////////////////////////////
+// PROPERTIES
+
+- (NXString *)description {
+  return @"null";
+}
+
 @end

@@ -285,3 +285,21 @@ objc_test(foundation_012
     foundation_012/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Strings, and formats.
+objc_test(foundation_013
+    foundation_013/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Mutable strings.
+objc_test(foundation_014
+    foundation_014/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Descriptions.
+objc_test(foundation_015
+    foundation_015/main.m
+    LIBRARIES picofuse-objc-foundation
+)

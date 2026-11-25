@@ -13,6 +13,7 @@
 
 // Forward Declaration of classes
 @class NXAutoreleasePool;
+@class NXMutableString;
 @class NXNull;
 @class NXNumber;
 @class NXObject;
@@ -30,6 +31,7 @@
 #include "NXNumber.h"
 #include "NXString.h"
 #include "NXConstantString.h"
+#include "NXMutableString.h"
 #include "NXThread.h"
 #include "NXZone.h"
 

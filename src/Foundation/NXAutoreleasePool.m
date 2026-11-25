@@ -1,3 +1,4 @@
+#include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 
@@ -145,10 +146,8 @@ static inline NXAutoreleasePool **current_pool(void) {
 
 // Add an empty page, in the same zone as the pool
 - (void)addPage {
-  size_t size = sizeof(struct NXAutoreleasePage);
-  NXZone *zone = [self zone];
   struct NXAutoreleasePage *page =
-      zone == nil ? sys_malloc(size) : [zone allocWithSize:size];
+      NXZoneAlloc([self zone], sizeof(struct NXAutoreleasePage));
   if (page == NULL) {
     sys_panicf("-[NXAutoreleasePool addObject:] out of memory");
   }
@@ -161,12 +160,7 @@ static inline NXAutoreleasePool **current_pool(void) {
 - (void)freePage {
   struct NXAutoreleasePage *page = _page;
   _page = page->previous;
-  NXZone *zone = [self zone];
-  if (zone == nil) {
-    sys_free(page);
-  } else {
-    [zone free:page];
-  }
+  NXZoneFree([self zone], page);
 }
 
 @end

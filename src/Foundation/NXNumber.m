@@ -191,6 +191,13 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
   return negative ? -(double)magnitude : (double)magnitude;
 }
 
+- (NXString *)description {
+  uint64_t magnitude;
+  BOOL negative = [self isNegative:&magnitude];
+  return [NXString
+      stringWithFormat:@"%s%lu", negative ? "-" : "", magnitude];
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
