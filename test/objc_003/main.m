@@ -1,10 +1,11 @@
+#include <test/TestString.h>
 #include <test/test.h>
 
 test_main(0) {
-  NXConstantString *a = @"apple";
-  NXConstantString *same = @"apple";
-  NXConstantString *longer = @"apples";
-  NXConstantString *other = @"grape";
+  TestString *a = @"apple";
+  TestString *same = @"apple";
+  TestString *longer = @"apples";
+  TestString *other = @"grape";
 
   test_assert([a length] == 5);
   test_assert([longer length] == 6);
@@ -17,5 +18,5 @@ test_main(0) {
   test_assert(![a isEqual:longer]);
   test_assert(![a isEqual:other]);
   test_assert(![a isEqual:nil]);
-  test_assert_strequal(object_getClassName(a), "NXConstantString");
+  test_assert_strequal(object_getClassName(a), "TestString");
 }
