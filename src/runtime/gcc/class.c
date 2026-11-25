@@ -204,7 +204,7 @@ void object_setClass(id object, Class cls) {
     sys_panicf("object_setClass: object or class is NULL");
     return;
   }
-  if (cls->info & objc_class_flag_meta) {
+  if (OBJC_LOAD_RELAXED(&cls->info) & objc_class_flag_meta) {
     sys_panicf("object_setClass: cannot set class to a metaclass");
     return;
   }

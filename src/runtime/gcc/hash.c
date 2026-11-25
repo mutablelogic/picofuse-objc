@@ -1,5 +1,6 @@
 #include "hash.h"
 #include "api.h"
+#include "lock.h"
 #include <runtime/gcc/objc.h>
 #include <string.h>
 
@@ -28,14 +29,6 @@ static inline size_t __objc_hash_next(size_t index) {
   return (index + 1) & (OBJC_METHOD_CAPACITY - 1);
 }
 
-/*
- * Returns true if an entry is for a class and method name
- */
-static inline bool __objc_hash_match(const struct objc_hashitem *item,
-                                     objc_class_t *cls, const char *name) {
-  return item->cls == cls && strcmp(item->method->name, name) == 0;
-}
-
 static inline bool __objc_hash_types_equal(const char *a, const char *b) {
   return a == b || (a != NULL && b != NULL && strcmp(a, b) == 0);
 }
@@ -50,16 +43,16 @@ bool __objc_hash_register(objc_class_t *cls, struct objc_method *method) {
   for (size_t i = 0; i < OBJC_METHOD_CAPACITY; i++) {
     struct objc_hashitem *item = &hash_table[index];
     if (item->cls == NULL) {
-      item->method = method;
-      __atomic_thread_fence(__ATOMIC_RELEASE);
-      item->cls = cls;
+      // Other threads may see the class as soon as it's there
+      OBJC_STORE_RELEASE(&item->method, method);
+      OBJC_STORE_RELEASE(&item->cls, cls);
       return true;
     }
-    if (__objc_hash_match(item, cls, name)) {
+    if (item->cls == cls && strcmp(item->method->name, name) == 0) {
       // Put this method first, and move the one that was here along, unless it's
       // been replaced
       struct objc_method *moved = item->method;
-      item->method = method;
+      OBJC_STORE_RELEASE(&item->method, method);
       if (__objc_hash_types_equal(moved->types, types)) {
         return true;
       }
@@ -75,12 +68,16 @@ struct objc_method *__objc_hash_lookup(objc_class_t *cls, const char *name,
   size_t index = __objc_hash_index(cls, name);
   for (size_t i = 0; i < OBJC_METHOD_CAPACITY; i++) {
     struct objc_hashitem *item = &hash_table[index];
-    if (item->cls == NULL) {
+    objc_class_t *item_cls = OBJC_LOAD_ACQUIRE(&item->cls);
+    if (item_cls == NULL) {
       return NULL;
     }
-    if (__objc_hash_match(item, cls, name) &&
-        (types == NULL || __objc_hash_types_equal(item->method->types, types))) {
-      return item->method;
+    if (item_cls == cls) {
+      struct objc_method *method = OBJC_LOAD_ACQUIRE(&item->method);
+      if (strcmp(method->name, name) == 0 &&
+          (types == NULL || __objc_hash_types_equal(method->types, types))) {
+        return method;
+      }
     }
     index = __objc_hash_next(index);
   }
