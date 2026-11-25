@@ -38,7 +38,6 @@ static void objects(NXZone *zone) {
   test_assert([thing zone] == zone);
   test_assert([thing class] == [Thing class]);
   test_assert([thing isKindOfClass:[NXObject class]]);
-  test_assert([thing conformsTo:@protocol(RetainProtocol)]);
 
   // It's deallocated when it's been released as often as it's been retained
   test_assert([thing retain] == thing);

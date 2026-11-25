@@ -19,7 +19,7 @@
  *
  * \headerfile NXObject.h Foundation/Foundation.h
  */
-@interface NXObject : Object <RetainProtocol> {
+@interface NXObject : Object {
 @private
   /**
    * @var _zone

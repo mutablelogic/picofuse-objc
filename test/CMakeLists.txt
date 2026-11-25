@@ -200,3 +200,9 @@ objc_test(foundation_006
     foundation_006/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Threads and cores.
+objc_test(foundation_007
+    foundation_007/main.m
+    LIBRARIES picofuse-objc-foundation
+)
