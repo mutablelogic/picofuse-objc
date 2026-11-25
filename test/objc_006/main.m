@@ -1,14 +1,15 @@
 #include <test/TestObject.h>
+#include <test/TestString.h>
 #include <test/test.h>
 
 @interface Person : TestObject {
-  NXConstantString *_title;
+  TestString *_title;
 }
-- (id)initWithTitle:(NXConstantString *)title;
+- (id)initWithTitle:(TestString *)title;
 @end
 
 @implementation Person
-- (id)initWithTitle:(NXConstantString *)title {
+- (id)initWithTitle:(TestString *)title {
   self = [super init];
   if (self != nil) {
     _title = title;
@@ -18,12 +19,12 @@
 @end
 
 @interface Person (Title)
-- (NXConstantString *)title;
+- (TestString *)title;
 + (int)legs;
 @end
 
 @implementation Person (Title)
-- (NXConstantString *)title {
+- (TestString *)title {
   return _title;
 }
 + (int)legs {
