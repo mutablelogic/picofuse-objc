@@ -1,9 +1,6 @@
+#include "lock.h"
 #include <runtime/gcc/objc.h>
 #include <picofuse/sys.h>
-
-#ifndef SYSTEM_NAME_PICO
-#include <pthread.h>
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // TYPES
@@ -30,18 +27,6 @@ static size_t sync_waiting = 0;        // Number of threads waiting for a lock
 
 ///////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
-
-/*
- * Returns a value which identifies the current thread, which is never zero.
- * On a Pico, there's one thread per core.
- */
-static inline uintptr_t __objc_sync_self(void) {
-#ifdef SYSTEM_NAME_PICO
-  return (uintptr_t)sys_thread_core() + 1;
-#else
-  return (uintptr_t)pthread_self();
-#endif
-}
 
 // clang warns that these aren't lock-free on an RP2040, where pico-sdk implements
 // them with a spin lock. Only the first load is used more than once.
@@ -106,7 +91,7 @@ int objc_sync_enter(id obj) {
   }
 
   __objc_sync_init();
-  uintptr_t self = __objc_sync_self();
+  uintptr_t self = __objc_thread_self();
   if (!sys_mutex_lock(sync_mutex)) {
     sys_panicf("objc_sync_enter: cannot lock mutex");
   }
@@ -144,7 +129,7 @@ int objc_sync_exit(id obj) {
   }
 
   __objc_sync_init();
-  uintptr_t self = __objc_sync_self();
+  uintptr_t self = __objc_thread_self();
   if (!sys_mutex_lock(sync_mutex)) {
     sys_panicf("objc_sync_exit: cannot lock mutex");
   }

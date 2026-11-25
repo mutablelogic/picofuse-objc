@@ -51,6 +51,7 @@ bool __objc_hash_register(objc_class_t *cls, struct objc_method *method) {
     struct objc_hashitem *item = &hash_table[index];
     if (item->cls == NULL) {
       item->method = method;
+      __atomic_thread_fence(__ATOMIC_RELEASE);
       item->cls = cls;
       return true;
     }
