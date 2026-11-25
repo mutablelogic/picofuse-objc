@@ -4,7 +4,6 @@
 
 int wide_value(void);
 int narrow_value(void);
-IMP objc_msg_lookup(id receiver, SEL selector);
 
 @interface Base : Object
 + (int)value:(int)number;

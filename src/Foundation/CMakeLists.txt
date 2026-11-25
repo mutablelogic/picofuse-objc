@@ -4,6 +4,7 @@ add_library(${NAME} STATIC
     NXAutoreleasePool.m
     NXDuration.m
     NXObject.m
+    NXThread.m
     NXZone.m
 )
 target_include_directories(${NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)

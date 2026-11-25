@@ -161,6 +161,15 @@ void object_setClass(id object, Class cls);
 BOOL object_respondsToSelector(id object, SEL sel);
 
 /**
+ * @brief Returns the types of a method's result and arguments.
+ * @ingroup objc
+ * @param object The object or class which has the method.
+ * @param sel The selector for the method.
+ * @return The type encoding, or `NULL` if there's no such method.
+ */
+const char *object_getMethodTypes(id object, SEL sel);
+
+/**
  * @brief Returns the superclass of an object.
  * @ingroup objc
  * @param obj The object to inspect.
@@ -213,6 +222,16 @@ BOOL class_metaclassRespondsToSelector(Class cls, SEL sel);
  * otherwise.
  */
 BOOL class_respondsToSelector(Class cls, SEL sel);
+
+/**
+ * @brief Finds the implementation of a method, as when a message is sent.
+ * @ingroup objc
+ * @param receiver The object or class which would receive the message.
+ * @param selector The selector for the message.
+ * @return The implementation, which has to be cast to a function with the method's
+ * own arguments and return type to be called. Panics if there's no such method.
+ */
+IMP objc_msg_lookup(id receiver, SEL selector);
 
 /**
  * @brief Returns the name of a selector.
