@@ -1,128 +1,87 @@
 #include "hash.h"
+#include "api.h"
 #include <runtime/gcc/objc.h>
-#include <picofuse/sys.h>
 #include <string.h>
 
-#define HASH_TABLE_SIZE 512
-struct objc_hashitem hash_table[HASH_TABLE_SIZE + 1];
+_Static_assert((OBJC_METHOD_CAPACITY & (OBJC_METHOD_CAPACITY - 1)) == 0,
+               "OBJC_METHOD_CAPACITY must be a power of two");
 
-static size_t __objc_hash_compute(objc_class_t *cls, const char *method,
-                                  const char *types);
-
-static BOOL __objc_hash_match(struct objc_hashitem *item, objc_class_t *cls,
-                              const char *method, const char *types);
+static struct objc_hashitem hash_table[OBJC_METHOD_CAPACITY];
 
 ///////////////////////////////////////////////////////////////////////////////
+// PRIVATE METHODS
 
-void __objc_hash_init() {
-  static BOOL init = NO;
-  if (init) {
-    return; // Already initialized
+/*
+ * Returns the index in the table at which to start looking for a method. The
+ * name is hashed by its contents, as each module has its own copy.
+ */
+static inline size_t __objc_hash_index(objc_class_t *cls, const char *name) {
+  // Classes are at least four-byte aligned
+  size_t hash = ((uintptr_t)cls >> 2) * 31;
+  for (const char *p = name; *p; p++) {
+    hash = (hash * 31) + (unsigned char)*p;
   }
-  init = YES;
+  return (hash ^ (hash >> 10)) & (OBJC_METHOD_CAPACITY - 1);
+}
 
-  // Initialize the hash table
-  for (int i = 0; i <= HASH_TABLE_SIZE; i++) {
-    hash_table[i].cls = NULL;
-  }
+static inline size_t __objc_hash_next(size_t index) {
+  return (index + 1) & (OBJC_METHOD_CAPACITY - 1);
 }
 
 /*
- * Register a new method in the hash table
+ * Returns true if an entry is for a class and method name
  */
-struct objc_hashitem *__objc_hash_register(objc_class_t *cls,
-                                           const char *method,
-                                           const char *types, IMP imp) {
-  size_t hash = __objc_hash_compute(cls, method, types);
-  size_t index = hash;
-  while (hash_table[hash].cls != NULL) {
-    // It we have matched the item exactly, then replace it
-    if (__objc_hash_match(&hash_table[hash], cls, method, types)) {
-      // Replace the existing item with the new implementation
-      struct objc_hashitem *item = &hash_table[hash];
-      item->imp = imp; // Update the implementation pointer
-      return item;     // Return the updated item
-    }
+static inline bool __objc_hash_match(const struct objc_hashitem *item,
+                                     objc_class_t *cls, const char *name) {
+  return item->cls == cls && strcmp(item->method->name, name) == 0;
+}
 
-    // Collision detected, find the next available slot
-    hash = (hash + 1) % HASH_TABLE_SIZE;
-    if (hash == index) {
+static inline bool __objc_hash_types_equal(const char *a, const char *b) {
+  return a == b || (a != NULL && b != NULL && strcmp(a, b) == 0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// PUBLIC METHODS
+
+bool __objc_hash_register(objc_class_t *cls, struct objc_method *method) {
+  const char *name = method->name;
+  const char *types = method->types;
+  size_t index = __objc_hash_index(cls, name);
+  for (size_t i = 0; i < OBJC_METHOD_CAPACITY; i++) {
+    struct objc_hashitem *item = &hash_table[index];
+    if (item->cls == NULL) {
+      item->method = method;
+      item->cls = cls;
+      return true;
+    }
+    if (__objc_hash_match(item, cls, name)) {
+      // Put this method first, and move the one that was here along, unless it's
+      // been replaced
+      struct objc_method *moved = item->method;
+      item->method = method;
+      if (__objc_hash_types_equal(moved->types, types)) {
+        return true;
+      }
+      method = moved;
+    }
+    index = __objc_hash_next(index);
+  }
+  return false;
+}
+
+struct objc_method *__objc_hash_lookup(objc_class_t *cls, const char *name,
+                                       const char *types) {
+  size_t index = __objc_hash_index(cls, name);
+  for (size_t i = 0; i < OBJC_METHOD_CAPACITY; i++) {
+    struct objc_hashitem *item = &hash_table[index];
+    if (item->cls == NULL) {
       return NULL;
     }
-  }
-
-  // Insert the new hash item
-  struct objc_hashitem *item = &hash_table[hash];
-  item->cls = cls;
-  item->method = method;
-  item->types = types;
-  item->imp = imp;
-
-  // Return the newly registered item
-  return item;
-}
-
-/*
- * Return YES if the hash item matches the class and method
- * it will also return NO if types is not null and the types
- * do not match
- */
-inline static BOOL __objc_hash_match(struct objc_hashitem *item,
-                                     objc_class_t *cls, const char *method,
-                                     const char *types) {
-  if (types) {
-    // Prefer to match types if provided
-    return item->cls == cls && item->method != NULL && method != NULL &&
-           strcmp(item->method, method) == 0 && item->types != NULL &&
-           strcmp(item->types, types) == 0;
-  } else {
-    return item->cls == cls && item->method != NULL && method != NULL &&
-           strcmp(item->method, method) == 0;
-  }
-}
-
-/*
- * Lookup an implementation for a method in the hash table
- */
-struct objc_hashitem *__objc_hash_lookup(objc_class_t *cls, const char *method,
-                                         const char *types) {
-  size_t hash = __objc_hash_compute(cls, method, types);
-  size_t index = hash;
-  while (hash_table[hash].cls != NULL) {
-    // Check if the class, method, and types match
-    if (__objc_hash_match(&hash_table[hash], cls, method, types)) {
-      // Found a match
-      return &hash_table[hash];
+    if (__objc_hash_match(item, cls, name) &&
+        (types == NULL || __objc_hash_types_equal(item->method->types, types))) {
+      return item->method;
     }
-    // Increment the hash to check the next item
-    hash = (hash + 1) % HASH_TABLE_SIZE;
-    if (hash == index) {
-      return NULL;
-    }
+    index = __objc_hash_next(index);
   }
-
-  // If we exited the loop because we found an empty slot, method not found
   return NULL;
-}
-
-static size_t __objc_hash_compute(objc_class_t *cls, const char *method,
-                                  const char *types) {
-  size_t hash = 0;
-  for (const char *p = cls->name; *p; p++) {
-    hash = (hash * 31) + *p;
-  }
-  if (cls->info & objc_class_flag_meta) {
-    hash += 0x10000; // Meta class flag
-  }
-  if (method != NULL) {
-    for (const char *p = method; *p; p++) {
-      hash = (hash * 31) + *p;
-    }
-  }
-  if (types != NULL) {
-    for (const char *p = types; *p; p++) {
-      hash = (hash * 31) + *p;
-    }
-  }
-  return hash % HASH_TABLE_SIZE;
 }

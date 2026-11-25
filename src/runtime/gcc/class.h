@@ -11,11 +11,6 @@ typedef struct objc_class objc_class_t;
 // METHODS
 
 /*
- * Initializes the Objective-C runtime class table
- */
-void __objc_class_init();
-
-/*
  * Register a class in the Objective-C runtime.
  */
 void __objc_class_register(objc_class_t *cls);

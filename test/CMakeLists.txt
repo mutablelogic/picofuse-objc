@@ -148,3 +148,14 @@ objc_test(objc_022
     objc_022/main.m
     TestObject.m
 )
+
+# Many classes, categories and methods.
+objc_test(objc_023
+    objc_023/main.m
+)
+
+# A category has a method of the same name as its class, but of different types.
+objc_test(objc_024
+    objc_024/main.m
+    objc_024/wide.m
+)

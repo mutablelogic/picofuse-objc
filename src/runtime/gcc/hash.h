@@ -2,35 +2,24 @@
 #include "class.h"
 
 /*
- * Objective-C runtime hash table for selectors.
- * This structure is used to store and manage selectors in the Objective-C
- * runtime.
+ * The table of methods, by class, name and types. There's one entry for each
+ * method, which refers to the description of it that the compiler generated.
  */
 struct objc_hashitem {
-  objc_class_t *cls;  // Pointer to the class that owns this selector
-  const char *method; // Key for the selector, typically the selector name
-  const char *types;  // Types encoding for the selector
-  IMP imp;            // Implementation pointer for the selector
+  objc_class_t *cls;          // The class which has the method
+  struct objc_method *method; // The method
 };
 
 /*
- * Initializes the hash table for the Objective-C runtime.
- * This function should be called before using the hash table to ensure it is
- * ready for use.
+ * Register a method, replacing any method of the class which has the same name
+ * and types. Returns false if the table is full.
  */
-void __objc_hash_init();
+bool __objc_hash_register(objc_class_t *cls, struct objc_method *method);
 
 /*
- * Register a new selector in the hash table. This function adds a new method to
- * the hash table, allowing it to be looked up later. Returns nil on failure, or
- * a pointer to the newly registered hash item on success.
+ * Lookup a method of a class by name and types, or if types is NULL, the last
+ * which was registered with that name. Returns NULL if there's no such method.
+ * The superclass isn't considered.
  */
-struct objc_hashitem *__objc_hash_register(objc_class_t *cls,
-                                           const char *method,
-                                           const char *types, IMP imp);
-
-/*
- * Lookup an implementation for a method in the hash table
- */
-struct objc_hashitem *__objc_hash_lookup(objc_class_t *cls, const char *method,
-                                         const char *types);
+struct objc_method *__objc_hash_lookup(objc_class_t *cls, const char *name,
+                                       const char *types);
