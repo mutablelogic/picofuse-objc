@@ -162,6 +162,11 @@ objc_test(objc_024
     objc_024/wide.m
 )
 
+# Two threads send the first messages to classes at the same time.
+objc_test(objc_025
+    objc_025/main.m
+)
+
 ###############################################################################
 # Foundation
 

@@ -1,6 +1,7 @@
 #include "class.h"
 #include "api.h"
 #include "hash.h"
+#include "lock.h"
 #include "protocol.h"
 #include <runtime/gcc/objc.h>
 #include <picofuse/sys.h>
@@ -89,58 +90,59 @@ void __objc_class_register_method_list(objc_class_t *cls,
 }
 
 /**
- * Register methods in the class for lookup objc_msg_lookup and
+ * Register the methods of a class or metaclass, for lookup by objc_msg_lookup and
  * objc_msg_lookup_super.
  */
-void __objc_class_register_methods(objc_class_t *p) {
-  // Check if the class is already resolved
-  if (p->info & objc_class_flag_resolved) {
-    return; // Already resolved
-  }
-
-  // Mark the class as being resolved to prevent circular resolution
-  p->info |= objc_class_flag_resolved;
-
+static void __objc_class_register_methods(objc_class_t *p) {
 #ifdef OBJCDEBUG
   sys_printf("  __objc_class_register_methods %c[%s] @%p size=%lu\n",
              p->info & objc_class_flag_meta ? '+' : '-', p->name, p, p->size);
 #endif
-
-  // Enumerate the class's methods and resolve them
   for (struct objc_method_list *ml = p->methods; ml != NULL; ml = ml->next) {
     __objc_class_register_method_list(p, ml);
   }
+}
+
+/**
+ * Resolve a class and its metaclass, and their superclasses, which are names until
+ * then. Other threads can use a class as soon as it's marked as resolved, so that's
+ * last. Must be called with the runtime locked.
+ */
+static void __objc_class_resolve(objc_class_t *cls) {
+  if (cls->info & objc_class_flag_resolved) {
+    return;
+  }
 
   // Resolve the superclass
-  if (p->superclass != NULL) {
-    // Check if superclass is already a resolved class pointer vs a string
-    // If it's a metaclass and superclass looks like a class pointer, skip
-    // string resolution
-    if (p->info & objc_class_flag_meta) {
-      // For metaclasses, superclass should already be set by objc_lookup_class
-      // Skip string-based resolution
-    } else {
-      // For instance classes, resolve the string-based superclass
-      Class superclass = objc_lookup_class((const char *)p->superclass);
-      if (superclass == Nil) {
-        sys_panicf("Superclass %s not found for class %s",
-                   (const char *)p->superclass, p->name);
-        return;
-      }
-      p->superclass = superclass; // Update the superclass pointer
+  if (cls->superclass != NULL) {
+    const char *name = (const char *)cls->superclass;
+    objc_class_t *superclass = __objc_lookup_class(name);
+    if (superclass == Nil) {
+      sys_panicf("Superclass %s not found for class %s", name, cls->name);
+    }
+    __objc_class_resolve(superclass);
+    cls->superclass = superclass;
+    if (cls->metaclass != NULL) {
+      cls->metaclass->superclass = superclass->metaclass;
     }
   }
+
+  // Register the methods
+  __objc_class_register_methods(cls);
+  if (cls->metaclass != NULL) {
+    __objc_class_register_methods(cls->metaclass);
+    __objc_flag_set(&cls->metaclass->info, objc_class_flag_resolved);
+  }
+  __objc_flag_set(&cls->info, objc_class_flag_resolved);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Lookup the class with the specified name, and resolve all the methods for the
- * class and metaclass if that has not yet been done. If the class is not found,
- * Nil is returned.
+ * Lookup the class with the specified name, and resolve it and its metaclass if
+ * that hasn't yet been done. If the class is not found, Nil is returned.
  */
 Class objc_lookup_class(const char *name) {
-  // Lookup the class by name
   objc_class_t *cls = __objc_lookup_class(name);
   if (cls == Nil) {
     return Nil;
@@ -149,32 +151,11 @@ Class objc_lookup_class(const char *name) {
   sys_printf("objc_lookup_class %c[%s] @%p\n",
              cls->info & objc_class_flag_meta ? '+' : '-', name, cls);
 #endif
-
-  // Resolve the class
-  if (cls->info & objc_class_flag_resolved) {
-    // Check if metaclass also needs to be resolved
-    if (cls->metaclass != NULL &&
-        !(cls->metaclass->info & objc_class_flag_resolved)) {
-      // Need to resolve the metaclass
-    } else {
-      return (Class)cls; // Both class and metaclass are resolved
-    }
+  if (!__objc_flag_test(&cls->info, objc_class_flag_resolved)) {
+    __objc_lock();
+    __objc_class_resolve(cls);
+    __objc_unlock();
   }
-
-  // Resolve the class methods (including superclass methods)
-  __objc_class_register_methods(cls);
-
-  // Set up the metaclass superclass BEFORE registering metaclass methods
-  if (cls->metaclass != NULL && cls->superclass != NULL) {
-    cls->metaclass->superclass = cls->superclass->metaclass;
-  }
-
-  // Resolve the metaclass methods (now that superclass is set)
-  if (cls->metaclass != NULL) {
-    __objc_class_register_methods(cls->metaclass);
-  }
-
-  // Return the class pointer
   return (Class)cls;
 }
 
@@ -223,7 +204,7 @@ void object_setClass(id object, Class cls) {
     sys_panicf("object_setClass: object or class is NULL");
     return;
   }
-  if (cls->info & objc_class_flag_meta) {
+  if (OBJC_LOAD_RELAXED(&cls->info) & objc_class_flag_meta) {
     sys_panicf("object_setClass: cannot set class to a metaclass");
     return;
   }
