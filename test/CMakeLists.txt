@@ -249,6 +249,12 @@ objc_test(foundation_008
     LIBRARIES picofuse-objc-foundation
 )
 
+# Null.
+objc_test(foundation_009
+    foundation_009/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
 # Floating point numbers which can't be integers.
 foreach(_case nan inf minus_inf limit minus_limit)
     objc_panic_test(foundation_010_${_case}
