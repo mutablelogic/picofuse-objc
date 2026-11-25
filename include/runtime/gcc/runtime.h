@@ -215,6 +215,16 @@ BOOL class_metaclassRespondsToSelector(Class cls, SEL sel);
 BOOL class_respondsToSelector(Class cls, SEL sel);
 
 /**
+ * @brief Finds the implementation of a method, as when a message is sent.
+ * @ingroup objc
+ * @param receiver The object or class which would receive the message.
+ * @param selector The selector for the message.
+ * @return The implementation, which has to be cast to a function with the method's
+ * own arguments and return type to be called. Panics if there's no such method.
+ */
+IMP objc_msg_lookup(id receiver, SEL selector);
+
+/**
  * @brief Returns the name of a selector.
  * @ingroup objc
  * @param sel The selector to inspect.

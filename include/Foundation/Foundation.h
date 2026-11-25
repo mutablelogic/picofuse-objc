@@ -14,17 +14,16 @@
 // Forward Declaration of classes
 @class NXAutoreleasePool;
 @class NXObject;
+@class NXThread;
 @class NXZone;
 
 // Types
 #include "NXDuration.h"
 
-// Protocols
-#include "Retain+Protocol.h"
-
 // Class Definitions
 #include "NXObject.h"
 #include "NXAutoreleasePool.h"
+#include "NXThread.h"
 #include "NXZone.h"
 
 #endif // __OBJC__
