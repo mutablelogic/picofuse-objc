@@ -5,6 +5,7 @@ add_library(${NAME} STATIC
     class.c
     hash.c
     init.m
+    lock.c
     message.c
     module.c
     mutex.c
