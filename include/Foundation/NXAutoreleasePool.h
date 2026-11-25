@@ -37,7 +37,7 @@ struct NXAutoreleasePage;
 /**
  * @brief Adds an object to the pool. It isn't retained, so the pool takes over a
  * reference to it.
- * @param object The object. Nothing is done if it's nil.
+ * @param object The object, which can't be a pool. Nothing is done if it's nil.
  *
  * This can only be called by the thread which initialized the pool.
  */
