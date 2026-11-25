@@ -143,10 +143,10 @@
 - (BOOL)containsString:(NXString *)other;
 
 /**
- * @brief Returns the offset, in bytes, of the first place that another string is in this
+ * @brief Returns the index, in bytes, of the first place that another string is in this
  * one, or NXNotFound. It's zero for nil or an empty string.
  */
-- (size_t)offsetOfString:(NXString *)other;
+- (size_t)indexOfSubstring:(NXString *)other;
 
 /**
  * @brief Returns the string itself.

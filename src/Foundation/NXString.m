@@ -228,10 +228,10 @@ void NXStringBufferRelease(void) {
 }
 
 - (BOOL)containsString:(NXString *)other {
-  return [self offsetOfString:other] != NXNotFound;
+  return [self indexOfSubstring:other] != NXNotFound;
 }
 
-- (size_t)offsetOfString:(NXString *)other {
+- (size_t)indexOfSubstring:(NXString *)other {
   ptrdiff_t offset = sys_string_contains([self cStr], [other cStr]);
   return offset < 0 ? NXNotFound : (size_t)offset;
 }

@@ -63,15 +63,15 @@ test_main(0) {
     test_assert([string containsString:@"lo wo"] && [string containsString:@""]);
     test_assert([string containsString:string] && [string containsString:none]);
     test_assert(![string containsString:@"low"]);
-    test_assert([string offsetOfString:@"o"] == 4);
-    test_assert([string offsetOfString:@"world"] == 6);
-    test_assert([string offsetOfString:@"hello"] == 0);
-    test_assert([string offsetOfString:@""] == 0);
-    test_assert([string offsetOfString:@"hello world!"] == NXNotFound);
-    test_assert([@"" offsetOfString:string] == NXNotFound);
+    test_assert([string indexOfSubstring:@"o"] == 4);
+    test_assert([string indexOfSubstring:@"world"] == 6);
+    test_assert([string indexOfSubstring:@"hello"] == 0);
+    test_assert([string indexOfSubstring:@""] == 0);
+    test_assert([string indexOfSubstring:@"hello world!"] == NXNotFound);
+    test_assert([@"" indexOfSubstring:string] == NXNotFound);
   }
   test_assert([@"constant" hasPrefix:@"con"] && [@"constant" hasSuffix:@"ant"]);
-  test_assert([@"aab" offsetOfString:@"ab"] == 1);
+  test_assert([@"aab" indexOfSubstring:@"ab"] == 1);
 
   // Changing case, as far as Latin-1
   NXMutableString *string = [NXMutableString stringWithCString:"Hello 1\xC3\xA9"];
