@@ -17,6 +17,7 @@
 @class NXNull;
 @class NXNumber;
 @class NXObject;
+@class NXStream;
 @class NXString;
 @class NXThread;
 @class NXZone;
@@ -34,6 +35,7 @@
 #include "NXString.h"
 #include "NXConstantString.h"
 #include "NXMutableString.h"
+#include "NXStream.h"
 #include "NXThread.h"
 #include "NXZone.h"
 
