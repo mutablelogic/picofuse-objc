@@ -9,11 +9,13 @@ picofuse-objc is built against an installed copy of
 same place, so that the two make up one installation. That's `/opt/picofuse`,
 unless you set `PREFIX` to another absolute path for both.
 
-At present this builds and installs the Objective-C runtime, `libpicofuse-objc-gcc.a`:
+At present this builds and installs the Objective-C runtime, and the beginnings
+of the Foundation framework:
 
-* `lib/<target>/libpicofuse-objc-gcc.a` and `lib/<target>/pkgconfig/picofuse-objc-gcc.pc`,
-  where `<target>` is the board, or the host (e.g. `darwin-arm64`)
-* `include/runtime/` - its headers
+* `lib/<target>/libpicofuse-objc-gcc.a` and `libpicofuse-objc-foundation.a`, with
+  a `pkg-config` file for each in `lib/<target>/pkgconfig/`. `<target>` is the
+  board, or the host (e.g. `darwin-arm64`)
+* `include/runtime/` and `include/Foundation/` - their headers
 
 ### Mac
 
