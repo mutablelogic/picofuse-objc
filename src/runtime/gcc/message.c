@@ -38,13 +38,13 @@ static IMP __objc_msg_lookup(objc_class_t *cls, SEL selector) {
                cls->info & objc_class_flag_meta ? '+' : '-', cls->name,
                sel_getName(selector), selector->sel_type);
 #endif
-    struct objc_hashitem *item =
+    struct objc_method *method =
         __objc_hash_lookup(cls, selector->sel_id, selector->sel_type);
-    if (item != NULL) {
+    if (method != NULL) {
       // Consider mutex in multi-threaded environment
       // TODO: Lookup selector->sel_id in the dispatch table first
       // If found, return the IMP directly
-      return item->imp; // Return the implementation pointer
+      return method->imp; // Return the implementation pointer
     }
     cls = cls->superclass;
   }

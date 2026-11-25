@@ -3,6 +3,31 @@
 #include <stddef.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+// Limits. Exceeding any of these panics.
+
+// Methods, in all classes and categories together. Must be a power of two, and is
+// best not more than about three quarters used, as lookup slows down.
+#ifndef OBJC_METHOD_CAPACITY
+#define OBJC_METHOD_CAPACITY 1024
+#endif
+
+// Classes
+#ifndef OBJC_CLASS_CAPACITY
+#define OBJC_CLASS_CAPACITY 128
+#endif
+
+// Categories
+#ifndef OBJC_CATEGORY_CAPACITY
+#define OBJC_CATEGORY_CAPACITY 64
+#endif
+
+// Lists of static instances: one for each module which has constant strings, and
+// with GCC, another for each which has protocols
+#ifndef OBJC_STATICS_CAPACITY
+#define OBJC_STATICS_CAPACITY 128
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////
 // Objective-C ABI
 
 // This is the current API version for the Objective-C runtime.

@@ -6,26 +6,13 @@
 #include <picofuse/sys.h>
 #include <string.h>
 
-#define CATEGORY_TABLE_SIZE 32
-
 // clang emits a category of this class, which doesn't exist, in each module
 // which has protocols. It's only there to list them.
 #define CATEGORY_PROTOCOL_HOLDER "__ObjC_Protocol_Holder_Ugly_Hack"
 
-static struct objc_category *category_table[CATEGORY_TABLE_SIZE + 1];
+static struct objc_category *category_table[OBJC_CATEGORY_CAPACITY];
 
 ///////////////////////////////////////////////////////////////////////////////
-
-void __objc_category_init() {
-  static BOOL init = NO;
-  if (init) {
-    return; // Already initialized
-  }
-  init = YES;
-  for (int i = 0; i <= CATEGORY_TABLE_SIZE; i++) {
-    category_table[i] = NULL;
-  }
-}
 
 void __objc_category_register(struct objc_category *category) {
   if (category == NULL || category->name == NULL ||
@@ -43,7 +30,7 @@ void __objc_category_register(struct objc_category *category) {
     return;
   }
 
-  for (int i = 0; i < CATEGORY_TABLE_SIZE; i++) {
+  for (int i = 0; i < OBJC_CATEGORY_CAPACITY; i++) {
     if (category_table[i] == category) {
       // Category is already registered, nothing to do
       return;
@@ -105,7 +92,7 @@ BOOL __objc_category_load() {
   init = YES;
 
   // Replace class name with resolved class
-  for (int i = 0; i < CATEGORY_TABLE_SIZE; i++) {
+  for (int i = 0; i < OBJC_CATEGORY_CAPACITY; i++) {
     struct objc_category *category = category_table[i];
     if (category == NULL) {
       continue; // Skip empty slots and continue searching
