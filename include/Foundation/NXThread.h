@@ -46,11 +46,13 @@
 /**
  * @brief Runs a method in a new thread.
  * @param selector The selector for the method, which has no arguments. What it
- * returns isn't used.
+ * returns isn't used, and can't be a struct, a union, a complex number or a long
+ * double.
  * @param target The object or class which has the method. If it's an NXObject, it's
  * retained until the method returns.
  * @return YES if the thread was started, or NO if the target doesn't have the
- * method, the method has arguments, or no thread is available.
+ * method, the method has arguments or can't be called because of what it returns, or no
+ * thread is available.
  *
  * The method has its own autorelease pool.
  */
@@ -75,7 +77,8 @@
  * @param argument The argument, which may be nil. If it's an NXObject, it's retained
  * until the method returns.
  * @return YES if the thread was started, or NO if the target doesn't have the
- * method, the method doesn't have one argument, or no thread is available.
+ * method, the method doesn't have one argument which is an object, or no thread is
+ * available.
  *
  * Otherwise this is the same as run:target:.
  */
@@ -89,7 +92,7 @@
  * until the method returns.
  * @param core The number of the core.
  * @return YES if the thread was started, or NO for the same reasons as
- * run:target:core:, or if the method doesn't have one argument.
+ * run:target:core:, or if the method doesn't have one argument which is an object.
  */
 + (BOOL)run:(SEL)selector
      target:(id)target

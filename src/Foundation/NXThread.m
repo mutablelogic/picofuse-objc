@@ -1,5 +1,6 @@
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // TYPES
@@ -42,6 +43,24 @@ static size_t arguments(SEL selector) {
   return count;
 }
 
+// Returns YES if a method can be called as if it returned nothing. That's not so if
+// it returns a struct, for example, as it's then passed where to put that.
+static BOOL returns_scalar(const char *types) {
+  types += strspn(types, "rnNoORVA"); // Qualifiers
+  return *types != '\0' && strchr("v@#:*^cCsSiIlLqQBfd", *types) != NULL;
+}
+
+// Returns YES if the last argument of a method is an object. Each type is followed
+// by the offset of the argument.
+static BOOL takes_object(const char *types) {
+  size_t length = strlen(types);
+  while (length > 0 && strchr("0123456789+-", types[length - 1]) != NULL) {
+    length--;
+  }
+  return length > 1 && strchr("@#", types[length - 1]) != NULL &&
+         types[length - 2] != '^';
+}
+
 static void thread_main(void *arg) {
   thread_context_t context = *(thread_context_t *)arg;
   sys_free(arg);
@@ -69,8 +88,12 @@ static void thread_main(void *arg) {
 // Start a thread, and return YES if successful
 static BOOL thread_start(thread_context_t run, int core) {
   if (run.target == nil || run.selector == NULL ||
-      arguments(run.selector) != (run.has_argument ? 1 : 0) ||
-      !object_respondsToSelector(run.target, run.selector)) {
+      arguments(run.selector) != (run.has_argument ? 1 : 0)) {
+    return NO;
+  }
+  const char *types = object_getMethodTypes(run.target, run.selector);
+  if (types == NULL || !returns_scalar(types) ||
+      (run.has_argument && !takes_object(types))) {
     return NO;
   }
 

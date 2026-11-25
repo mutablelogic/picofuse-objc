@@ -161,6 +161,15 @@ void object_setClass(id object, Class cls);
 BOOL object_respondsToSelector(id object, SEL sel);
 
 /**
+ * @brief Returns the types of a method's result and arguments.
+ * @ingroup objc
+ * @param object The object or class which has the method.
+ * @param sel The selector for the method.
+ * @return The type encoding, or `NULL` if there's no such method.
+ */
+const char *object_getMethodTypes(id object, SEL sel);
+
+/**
  * @brief Returns the superclass of an object.
  * @ingroup objc
  * @param obj The object to inspect.

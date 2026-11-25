@@ -208,6 +208,21 @@ BOOL object_respondsToSelector(id object, SEL selector) {
   return __objc_msg_lookup(cls, selector) == NULL ? NO : YES;
 }
 
+const char *object_getMethodTypes(id object, SEL selector) {
+  if (object == nil || selector == NULL) {
+    return NULL;
+  }
+  for (objc_class_t *cls = object_getClass(object); cls != Nil;
+       cls = cls->superclass) {
+    struct objc_method *method =
+        __objc_hash_lookup(cls, selector->sel_id, selector->sel_type);
+    if (method != NULL) {
+      return method->types;
+    }
+  }
+  return NULL;
+}
+
 BOOL class_metaclassRespondsToSelector(Class cls, SEL selector) {
   if (cls == Nil) {
     return NO;
