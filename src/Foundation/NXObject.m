@@ -1,3 +1,4 @@
+#include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 #include <string.h>
@@ -20,18 +21,16 @@
 
 + (id)allocWithZone:(NXZone *)zone {
   size_t size = class_getInstanceSize(self);
-  if (zone == nil) {
-    zone = [NXZone defaultZone];
-  }
-
   NXObject *instance;
   if (zone == nil) {
-    instance = sys_calloc(1, size);
+    instance = [NXZone allocWithSize:size defaultZone:&zone];
   } else {
     instance = [zone allocWithSize:size];
-    if (instance != NULL) {
-      memset((void *)instance, 0, size);
-    }
+  }
+  if (zone == nil) {
+    instance = sys_calloc(1, size);
+  } else if (instance != NULL) {
+    memset((void *)instance, 0, size);
   }
   if (instance == NULL) {
     return nil;

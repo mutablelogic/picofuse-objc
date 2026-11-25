@@ -1,11 +1,14 @@
+#include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 
 // Enough for what an arena uses to keep track of one allocation
 #define ARENA_OVERHEAD 64
 
-// The first zone which was created, unless it's since been deallocated
-static NXZone *defaultZone = nil;
+// The first zone which was created, unless it's since been deallocated. It's only
+// changed, and memory is only allocated from it as the default zone, with the
+// class locked.
+static NXZone *volatile defaultZone = nil;
 
 @implementation NXZone
 
@@ -79,13 +82,12 @@ static sys_mem_stats_t arena_stats(sys_mem_arena_t *arena) {
 }
 
 - (void)dealloc {
-  size_t count = [self count];
-  if (count != 0) {
-    sys_panicf("-[NXZone dealloc] called with %u allocations",
-               (unsigned)count);
-  }
-
   @synchronized([NXZone class]) {
+    size_t count = [self count];
+    if (count != 0) {
+      sys_panicf("-[NXZone dealloc] called with %u allocations",
+                 (unsigned)count);
+    }
     if (defaultZone == self) {
       defaultZone = nil;
     }
@@ -111,19 +113,34 @@ static sys_mem_stats_t arena_stats(sys_mem_arena_t *arena) {
 }
 
 - (size_t)count {
-  return arena_stats(_arena).allocations;
+  sys_mem_stats_t stats;
+  @synchronized(self) {
+    stats = arena_stats(_arena);
+  }
+  return stats.allocations;
 }
 
 - (size_t)bytesTotal {
-  return arena_stats(_arena).size_bytes;
+  sys_mem_stats_t stats;
+  @synchronized(self) {
+    stats = arena_stats(_arena);
+  }
+  return stats.size_bytes;
 }
 
 - (size_t)bytesUsed {
-  return arena_stats(_arena).used_bytes;
+  sys_mem_stats_t stats;
+  @synchronized(self) {
+    stats = arena_stats(_arena);
+  }
+  return stats.used_bytes;
 }
 
 - (size_t)bytesFree {
-  sys_mem_stats_t stats = arena_stats(_arena);
+  sys_mem_stats_t stats;
+  @synchronized(self) {
+    stats = arena_stats(_arena);
+  }
   return stats.size_bytes - stats.used_bytes;
 }
 
@@ -179,6 +196,24 @@ static sys_mem_stats_t arena_stats(sys_mem_arena_t *arena) {
   if (!freed) {
     sys_panicf("-[NXZone free:] memory @%p wasn't allocated by the zone", ptr);
   }
+}
+
+@end
+
+@implementation NXZone (Private)
+
++ (void *)allocWithSize:(size_t)size defaultZone:(NXZone **)zone {
+  *zone = nil;
+  if (defaultZone == nil) {
+    return NULL;
+  }
+
+  void *ptr = NULL;
+  @synchronized([NXZone class]) {
+    *zone = defaultZone;
+    ptr = [*zone allocWithSize:size];
+  }
+  return ptr;
 }
 
 @end
