@@ -309,3 +309,9 @@ objc_test(foundation_016
     foundation_016/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Streams.
+objc_test(foundation_017
+    foundation_017/main.m
+    LIBRARIES picofuse-objc-foundation
+)
