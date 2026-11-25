@@ -2,6 +2,7 @@
 #include "category.h"
 #include "class.h"
 #include "hash.h"
+#include "lock.h"
 #include "protocol.h"
 #include "statics.h"
 #include <runtime/gcc/objc.h>
@@ -52,26 +53,77 @@ static IMP __objc_msg_lookup(objc_class_t *cls, SEL selector) {
   return NULL; // Method not found
 }
 
+// A class which is being sent +initialize, and the thread that's doing that
+struct objc_initializing {
+  objc_class_t *cls;
+  uintptr_t owner;
+  struct objc_initializing *next;
+};
+
+// Those at present, which are on the stacks of their threads
+static struct objc_initializing *initializing = NULL;
+
+// Begin to send +initialize to a class, and return YES, unless it's already been
+// done, or is being done by this thread, in which case the class can be used. If
+// another thread is doing it, wait until that's done.
+static BOOL __objc_initialize_begin(struct objc_initializing *node,
+                                    objc_class_t *cls) {
+  uintptr_t self = __objc_thread_self();
+  for (;;) {
+    __objc_lock();
+    if (cls->metaclass->info & objc_class_flag_initialized) {
+      __objc_unlock();
+      return NO;
+    }
+    struct objc_initializing *found = initializing;
+    while (found != NULL && found->cls != cls) {
+      found = found->next;
+    }
+    if (found == NULL) {
+      node->cls = cls;
+      node->owner = self;
+      node->next = initializing;
+      initializing = node;
+      __objc_unlock();
+      return YES;
+    }
+    BOOL mine = found->owner == self;
+    __objc_unlock();
+    if (mine) {
+      return NO;
+    }
+    __objc_lock_wait();
+  }
+}
+
+// Mark a class as having been sent +initialize
+static void __objc_initialize_end(struct objc_initializing *node) {
+  __objc_lock();
+  struct objc_initializing **link = &initializing;
+  while (*link != node) {
+    link = &(*link)->next;
+  }
+  *link = node->next;
+  __objc_flag_set(&node->cls->metaclass->info, objc_class_flag_initialized);
+  __objc_unlock();
+}
+
 // Send +initialize to a class (not a metaclass), and to its superclasses
 // before it, if that hasn't already been done. Whether it's been done is
-// recorded in the metaclass.
+// recorded in the metaclass. The runtime isn't locked meanwhile, so that
+// +initialize can wait for other threads.
 static void __objc_send_initialize(objc_class_t *cls) {
-  if (cls == Nil || cls->metaclass == Nil) {
+  if (cls == Nil || cls->metaclass == Nil ||
+      __objc_flag_test(&cls->metaclass->info, objc_class_flag_initialized)) {
     return;
   }
 
-  // Don't call initialize on the same class twice
-  objc_class_t *meta_cls = cls->metaclass;
-  if (meta_cls->info & objc_class_flag_initialized) {
+  // Superclass first
+  __objc_send_initialize(cls->superclass);
+
+  struct objc_initializing node;
+  if (!__objc_initialize_begin(&node, cls)) {
     return;
-  }
-
-  // Mark the class as initialized early to prevent recursion
-  meta_cls->info |= objc_class_flag_initialized;
-
-  // If the superclass has an initialize method, call it first
-  if (cls->superclass) {
-    __objc_send_initialize(cls->superclass);
   }
 
   // Find and call the initialize method. The selector has no type encoding,
@@ -81,7 +133,7 @@ static void __objc_send_initialize(objc_class_t *cls) {
       .sel_id = "initialize", // The selector for the initialize method
       .sel_type = NULL,
   };
-  IMP imp = __objc_msg_lookup(meta_cls, &initialize);
+  IMP imp = __objc_msg_lookup(cls->metaclass, &initialize);
   if (imp != NULL) {
     // Call the initialize method - suppress function cast warning as this is a
     // legitimate cast from variadic IMP to non-variadic function for
@@ -92,6 +144,24 @@ static void __objc_send_initialize(objc_class_t *cls) {
         (id)cls, &initialize); // Call the initialize method on the class
 #pragma GCC diagnostic pop
   }
+
+  __objc_initialize_end(&node);
+}
+
+// Load the protocols, static instances and categories, before any message is sent
+static void __objc_load(void) {
+  static unsigned long loaded = NO;
+  if (__objc_flag_test(&loaded, YES)) {
+    return;
+  }
+  __objc_lock();
+  if (!loaded) {
+    __objc_protocol_load();
+    __objc_statics_load();
+    __objc_category_load();
+    __objc_flag_set(&loaded, YES);
+  }
+  __objc_unlock();
 }
 
 /**
@@ -105,13 +175,7 @@ IMP objc_msg_lookup(id receiver, SEL selector) {
   }
 
   // First load the protocols, static instances and categories
-  static BOOL init = NO;
-  if (init == NO) {
-    init = YES; // Set init to YES to prevent multiple initializations
-    __objc_protocol_load();
-    __objc_statics_load();
-    __objc_category_load();
-  }
+  __objc_load();
 
   // Get the class of the receiver
   objc_class_t *cls = receiver->isa;
@@ -138,7 +202,7 @@ IMP objc_msg_lookup(id receiver, SEL selector) {
   // time to do it
   objc_class_t *meta_cls =
       cls->info & objc_class_flag_meta ? cls : cls->metaclass;
-  if (!(meta_cls->info & objc_class_flag_initialized)) {
+  if (!__objc_flag_test(&meta_cls->info, objc_class_flag_initialized)) {
 #ifdef OBJCDEBUG
     sys_printf("  +[%s initialize] \n", cls->name);
 #endif
