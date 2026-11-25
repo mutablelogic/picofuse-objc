@@ -63,6 +63,10 @@ static BOOL magnitude_of(NXNumber *number, uint64_t *magnitude) {
   return _value;
 }
 
+- (NXString *)description {
+  return [NXString stringWithFormat:@"%.6g", (double)_value];
+}
+
 @end
 
 @implementation NXNumberFloat64
@@ -93,6 +97,10 @@ static BOOL magnitude_of(NXNumber *number, uint64_t *magnitude) {
 
 - (double)float64Value {
   return _value;
+}
+
+- (NXString *)description {
+  return [NXString stringWithFormat:@"%.9g", _value];
 }
 
 @end

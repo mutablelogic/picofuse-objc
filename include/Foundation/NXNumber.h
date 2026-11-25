@@ -197,4 +197,11 @@ uint64_t NXRandUnsignedInt64(void);
  */
 - (BOOL)isEqual:(id)anObject;
 
+/**
+ * @brief Returns the value as a string, which is "true" or "false" for a boolean. A
+ * floating point value is rounded, to six significant digits if it's 32-bit, or
+ * otherwise nine.
+ */
+- (NXString *)description;
+
 @end

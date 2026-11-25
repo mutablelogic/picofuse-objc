@@ -3,6 +3,7 @@
  * @brief Defines the NXString class, for strings.
  */
 #pragma once
+#include <stdarg.h>
 #include <stddef.h>
 
 /**
@@ -10,14 +11,89 @@
  * @ingroup Foundation
  *
  * This is the class of any string, including a constant such as `@"string"`, so it's
- * what methods take and return. Each kind of string is a subclass, which implements
- * length and cStr.
+ * what methods take and return. Other strings copy what they're made from.
  *
- * Strings can't be changed, unless they're of a subclass which can.
+ * Strings can't be changed, unless they're an NXMutableString.
+ *
+ * A format can have these in it:
+ *
+ * | Specifier        | Argument                                                  |
+ * | ---------------- | --------------------------------------------------------- |
+ * | `%c`             | Character                                                 |
+ * | `%s`             | Null-terminated string                                    |
+ * | `%d` `%u`        | 32-bit signed or unsigned integer                         |
+ * | `%x` `%X`        | 32-bit unsigned integer, in hexadecimal                   |
+ * | `%b` `%o`        | 32-bit unsigned integer, in binary or octal               |
+ * | `%f` `%e` `%g`   | Floating point, also `%F`, `%E` and `%G`                  |
+ * | `%p`             | Pointer                                                   |
+ * | `%@`             | Object, which is replaced by its description, or `<nil>`  |
+ * | `%t`             | NXDuration                                                |
+ * | `%%`             | None, as it's a percent sign                              |
+ *
+ * With an `l`, as in `%ld`, an integer is 64 bits, on every system. With a `z`, it's a
+ * size_t. There can also be a minimum width, as in `%80d`, a precision for floating
+ * point, as in `%.3f`, and the flags `-` (on the left), `0` (pad with zeros), `+` (show
+ * the sign), space, and `#` (show the base). They have no effect on `%@` and `%t`.
+ *
+ * The description of an object may be needed twice, as a long string is formatted once
+ * to find out how long it is.
+ *
+ * Strings which are returned by class methods are in the current autorelease pool.
+ * Methods which make strings return nil if there isn't enough memory.
+ *
+ * Subclasses implement length and cStr.
  *
  * \headerfile NXString.h Foundation/Foundation.h
  */
 @interface NXString : NXObject
+
+/**
+ * @brief Returns an empty string.
+ */
++ (id)string;
+
+/**
+ * @brief Returns a string with the contents of another, which is empty if that's nil.
+ */
++ (id)stringWithString:(NXString *)other;
+
+/**
+ * @brief Returns a string with the contents of a null-terminated string, which is empty
+ * if that's NULL.
+ */
++ (id)stringWithCString:(const char *)cStr;
+
+/**
+ * @brief Returns a string made from a format and arguments.
+ */
++ (id)stringWithFormat:(NXString *)format, ...;
+
+/**
+ * @brief Initializes a string with a number of bytes.
+ */
+- (id)initWithBytes:(const void *)bytes length:(size_t)length;
+
+/**
+ * @brief Initializes a string with the contents of another, which is empty if that's
+ * nil.
+ */
+- (id)initWithString:(NXString *)other;
+
+/**
+ * @brief Initializes a string with the contents of a null-terminated string, which is
+ * empty if that's NULL.
+ */
+- (id)initWithCString:(const char *)cStr;
+
+/**
+ * @brief Initializes a string with a format and arguments.
+ */
+- (id)initWithFormat:(NXString *)format, ...;
+
+/**
+ * @brief Initializes a string with a format and a list of arguments.
+ */
+- (id)initWithFormat:(NXString *)format arguments:(va_list)args;
 
 /**
  * @brief Returns the length in bytes, which doesn't include the null terminator.
@@ -35,5 +111,10 @@
  * kind it is.
  */
 - (BOOL)isEqual:(id)anObject;
+
+/**
+ * @brief Returns the string itself.
+ */
+- (NXString *)description;
 
 @end
