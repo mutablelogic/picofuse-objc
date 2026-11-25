@@ -6,11 +6,10 @@ if(CMAKE_CROSSCOMPILING)
     string(REGEX REPLACE "-.*$" "" _chip "${_platform}") # rp2350-arm-s => rp2350
 endif()
 
-# objc_test(NAME SOURCES... [LIBRARIES <lib> ...])
+# objc_executable(NAME SOURCES... [LIBRARIES <lib> ...])
 #
-# Builds a test against the Objective-C runtime and any other LIBRARIES, and
-# registers it with CTest.
-function(objc_test NAME)
+# Builds a program against the Objective-C runtime and any other LIBRARIES.
+function(objc_executable NAME)
     cmake_parse_arguments(_ARG "" "" "LIBRARIES" ${ARGN})
     picofuse_executable(
         NAME ${NAME}
@@ -18,6 +17,12 @@ function(objc_test NAME)
         SOURCES ${_ARG_UNPARSED_ARGUMENTS}
     )
     target_link_libraries(${NAME} PRIVATE ${_ARG_LIBRARIES} picofuse-objc-gcc)
+endfunction()
+
+# objc_test_add(NAME COMMAND...)
+#
+# Registers a program with CTest, which runs COMMAND on a host.
+function(objc_test_add NAME)
     if(CMAKE_CROSSCOMPILING)
         add_test(NAME ${NAME}
             COMMAND ${TESTRUNNER} --target target/${_chip}.cfg $<TARGET_FILE:${NAME}>)
@@ -25,8 +30,34 @@ function(objc_test NAME)
         # There's only one board
         set_tests_properties(${NAME} PROPERTIES RESOURCE_LOCK board)
     else()
-        add_test(NAME ${NAME} COMMAND ${NAME})
+        add_test(NAME ${NAME} COMMAND ${ARGN})
     endif()
+endfunction()
+
+# objc_test(NAME SOURCES... [LIBRARIES <lib> ...])
+#
+# Builds a test, and registers it with CTest.
+function(objc_test NAME)
+    objc_executable(${NAME} ${ARGN})
+    objc_test_add(${NAME} ${NAME})
+endfunction()
+
+# objc_panic_test(NAME MESSAGE SOURCES... [DEFINITIONS <name>=<value> ...]
+#                 [LIBRARIES <lib> ...])
+#
+# As objc_test(), but the test has to panic, with a message that matches a regular
+# expression. A program can only panic once, so there's one for each case, for which
+# DEFINITIONS can be used to choose between those in the same source.
+function(objc_panic_test NAME MESSAGE)
+    cmake_parse_arguments(_ARG "" "" "DEFINITIONS;LIBRARIES" ${ARGN})
+    objc_executable(${NAME} ${_ARG_UNPARSED_ARGUMENTS} LIBRARIES ${_ARG_LIBRARIES})
+    target_compile_definitions(${NAME} PRIVATE ${_ARG_DEFINITIONS})
+
+    # A host program which aborts always fails, whatever it printed, other than in a
+    # shell
+    objc_test_add(${NAME} sh -c "\"$<TARGET_FILE:${NAME}>\" || true")
+    set_tests_properties(${NAME} PROPERTIES
+        PASS_REGULAR_EXPRESSION "\\[PANIC\\] ${MESSAGE}")
 endfunction()
 
 # Print "hello, world" from a constant string.
@@ -223,3 +254,13 @@ objc_test(foundation_009
     foundation_009/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Floating point numbers which can't be integers.
+foreach(_case nan inf minus_inf limit minus_limit)
+    objc_panic_test(foundation_010_${_case}
+        "-.NXNumberFloat64. value is out of range for an integer"
+        foundation_010/main.m
+        DEFINITIONS CASE_${_case}
+        LIBRARIES picofuse-objc-foundation
+    )
+endforeach()
