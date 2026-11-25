@@ -15,6 +15,9 @@
 @class NXObject;
 @class NXZone;
 
+// Types
+#include "NXDuration.h"
+
 // Protocols
 #include "Retain+Protocol.h"
 
