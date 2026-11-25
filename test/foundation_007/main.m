@@ -1,6 +1,11 @@
 #include <Foundation/Foundation.h>
 #include <test/test.h>
 
+// clang warns that atomics aren't lock-free on an RP2040
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
+
 typedef struct {
   long values[8];
 } large_t;
@@ -13,8 +18,7 @@ static sys_atomic_t core, had_pool, could_run, as_expected;
 static id expected = nil;
 
 static void ran(void) {
-  __atomic_thread_fence(__ATOMIC_RELEASE);
-  sys_atomic_inc(&runs);
+  __atomic_add_fetch(&runs.value, 1, __ATOMIC_RELEASE);
 }
 
 @interface Worker : NXObject
@@ -89,8 +93,7 @@ static void wait_for(sys_atomic_t *value, uint32_t count) {
   for (int i = 0; i < 500 && sys_atomic_get(value) < count; i++) {
     [NXThread sleepForDuration:10 * NXMillisecond];
   }
-  test_assert(sys_atomic_get(value) == count);
-  __atomic_thread_fence(__ATOMIC_ACQUIRE);
+  test_assert(__atomic_load_n(&value->value, __ATOMIC_ACQUIRE) == count);
   sys_atomic_set(value, 0);
 }
 

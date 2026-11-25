@@ -21,4 +21,9 @@
  */
 + (NXNull *)nullValue;
 
+/**
+ * @brief Returns "null".
+ */
+- (NXString *)description;
+
 @end

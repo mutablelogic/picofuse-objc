@@ -29,6 +29,10 @@ NX_STATIC_METHODS
   return (NXNumber *)(void *)&zero_storage;
 }
 
+- (NXString *)description {
+  return @"0";
+}
+
 @end
 
 @implementation NXNumberBool
@@ -53,6 +57,10 @@ NX_STATIC_METHODS
 - (BOOL)isNegative:(uint64_t *)magnitude {
   *magnitude = _value ? 1 : 0;
   return NO;
+}
+
+- (NXString *)description {
+  return _value ? @"true" : @"false";
 }
 
 @end
