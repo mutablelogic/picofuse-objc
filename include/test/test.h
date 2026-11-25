@@ -10,12 +10,13 @@
 /**
  * @def test_assert(condition)
  * @brief Asserts that a condition is true, panicking if it is not. Always
- * checked, regardless of NDEBUG.
+ * checked, regardless of NDEBUG. The condition can have commas in it, which aren't
+ * otherwise allowed within brackets.
  */
-#define test_assert(condition)                                                 \
+#define test_assert(...)                                                       \
   do {                                                                         \
-    if (!(condition)) {                                                        \
-      sys_panicf("[TEST] FAIL: %s, file %s, line %d", #condition, __FILE__,    \
+    if (!(__VA_ARGS__)) {                                                      \
+      sys_panicf("[TEST] FAIL: %s, file %s, line %d", #__VA_ARGS__, __FILE__,  \
                  __LINE__);                                                    \
     }                                                                          \
   } while (0)

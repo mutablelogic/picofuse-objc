@@ -69,14 +69,12 @@ uint32_t NXDurationMilliseconds(NXDuration duration);
  */
 NXDuration NXDurationTimestamp(void);
 
-// TODO: This needs NXString
-#if 0
 /**
- * @brief Returns a description of a duration, such as "1 day 2h 3m 4s 5ms".
+ * @brief Returns a description of a duration, such as "1 day 2h 3m 4s 5ms 6us 7ns".
  * @ingroup Foundation
  * @param duration The duration.
  * @param truncate The unit to which the duration is truncated, or zero for none.
- * @return The description, which is "0s" if the duration is truncated to zero.
+ * @return The description, which is "0s" if the duration is truncated to zero. It's in
+ * the current autorelease pool.
  */
 NXString *NXDurationDescription(NXDuration duration, NXDuration truncate);
-#endif

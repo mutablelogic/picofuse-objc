@@ -19,9 +19,17 @@ NXDuration NXDurationTimestamp(void) {
   return (NXDuration)sys_timestamp_ms() * NXMillisecond;
 }
 
-// TODO: This needs NXString
-#if 0
 NXString *NXDurationDescription(NXDuration duration, NXDuration truncate) {
+  static const struct {
+    NXDuration unit;
+    const char *name, *plural;
+  } units[] = {
+      {NXDay, " day", " days"},     {NXHour, "h", "h"},
+      {NXMinute, "m", "m"},         {NXSecond, "s", "s"},
+      {NXMillisecond, "ms", "ms"},  {NXMicrosecond, "us", "us"},
+      {NXNanosecond, "ns", "ns"},
+  };
+
   // The magnitude is unsigned, as the most negative duration has no positive
   // equivalent
   uint64_t value = duration < 0 ? -(uint64_t)duration : (uint64_t)duration;
@@ -29,43 +37,25 @@ NXString *NXDurationDescription(NXDuration duration, NXDuration truncate) {
     value -= value % (uint64_t)truncate;
   }
   if (value == 0) {
-    return [NXString stringWithCString:"0s"];
+    return @"0s";
   }
 
-  // Create a string with capacity for the maximum possible length
-  NXString *desc = [NXString stringWithCapacity:64];
-  if (duration < 0) {
-    [desc appendCString:"-"];
+  NXMutableString *description = [NXMutableString stringWithCapacity:48];
+  if (duration < 0 && ![description appendCString:"-"]) {
+    return nil;
   }
-
-  // Each of these fits into a long, which is 32 bits on a Pico
-  long days = (long)(value / NXDay);
-  value %= NXDay;
-  if (days > 0) {
-    [desc appendStringWithFormat:@"%ld day%s ", days, (days == 1) ? "" : "s"];
+  const char *separator = "";
+  for (size_t i = 0; i < sizeof(units) / sizeof(units[0]); i++) {
+    uint64_t count = value / (uint64_t)units[i].unit;
+    value %= (uint64_t)units[i].unit;
+    if (count > 0) {
+      if (![description
+              appendFormat:@"%s%lu%s", separator, count,
+                           count == 1 ? units[i].name : units[i].plural]) {
+        return nil;
+      }
+      separator = " ";
+    }
   }
-  long hours = (long)(value / NXHour);
-  value %= NXHour;
-  if (hours > 0) {
-    [desc appendStringWithFormat:@"%ldh ", hours];
-  }
-  long minutes = (long)(value / NXMinute);
-  value %= NXMinute;
-  if (minutes > 0) {
-    [desc appendStringWithFormat:@"%ldm ", minutes];
-  }
-  long seconds = (long)(value / NXSecond);
-  value %= NXSecond;
-  if (seconds > 0) {
-    [desc appendStringWithFormat:@"%lds ", seconds];
-  }
-  long milliseconds = (long)(value / NXMillisecond);
-  if (milliseconds > 0) {
-    [desc appendStringWithFormat:@"%ldms ", milliseconds];
-  }
-
-  // Return the formatted string, trimming any trailing spaces
-  [desc trimWhitespace];
-  return desc;
+  return description;
 }
-#endif
