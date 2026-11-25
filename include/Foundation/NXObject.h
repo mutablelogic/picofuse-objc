@@ -4,7 +4,6 @@
  * framework.
  */
 #pragma once
-#include <picofuse/sys.h>
 
 /**
  * @brief The base class for objects in the Foundation framework.
@@ -17,23 +16,13 @@
  * Instances are allocated in the default zone, or if there isn't one, with
  * sys_calloc(). See NXZone.
  *
+ * It has no instance variables of its own: the zone and the retain count are kept in
+ * memory just before the instance. That's because the compiler lays out constant
+ * strings, so their superclasses can't have any.
+ *
  * \headerfile NXObject.h Foundation/Foundation.h
  */
-@interface NXObject : Object {
-@private
-  /**
-   * @var _zone
-   * @brief The zone in which the instance was allocated, or nil if it wasn't
-   * allocated in a zone.
-   */
-  NXZone *_zone;
-
-  /**
-   * @var _retain
-   * @brief The retain count of the instance.
-   */
-  sys_atomic_t _retain;
-}
+@interface NXObject : Object
 
 /**
  * @brief Allocates a new instance in the default zone, or if there isn't one,

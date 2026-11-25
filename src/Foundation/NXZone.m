@@ -1,3 +1,4 @@
+#include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
@@ -46,12 +47,8 @@ static sys_mem_stats_t arena_stats(sys_mem_arena_t *arena) {
     return nil;
   }
 
-  NXZone *instance = sys_calloc(1, class_getInstanceSize(self));
-  if (instance == NULL) {
-    return nil;
-  }
-  object_setClass(instance, self);
-  return [instance retain];
+  void *memory = sys_calloc(1, NXObjectSize(self));
+  return memory == NULL ? nil : NXObjectCreate(memory, self, nil);
 }
 
 // There's nothing to be done with a zone which has no size

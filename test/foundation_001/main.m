@@ -1,4 +1,5 @@
 #include <Foundation/Foundation.h>
+#include <stddef.h>
 #include <test/test.h>
 
 static int deallocated = 0;
@@ -38,6 +39,7 @@ static void objects(NXZone *zone) {
   test_assert([thing zone] == zone);
   test_assert([thing class] == [Thing class]);
   test_assert([thing isKindOfClass:[NXObject class]]);
+  test_assert((uintptr_t)thing % _Alignof(max_align_t) == 0);
 
   // It's deallocated when it's been released as often as it's been retained
   test_assert([thing retain] == thing);
@@ -66,6 +68,9 @@ static void objects(NXZone *zone) {
 }
 
 test_main(0) {
+  // NXObject has no instance variables, as constant strings can't
+  test_assert(class_getInstanceSize([NXObject class]) == sizeof(Class));
+
   // Without a default zone
   test_assert([NXZone defaultZone] == nil);
   objects(nil);
