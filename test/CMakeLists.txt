@@ -1,0 +1,138 @@
+# On a board, a test is flashed and run with picofuse's testrunner, through a
+# debug probe. It comes from the installation's host build.
+if(CMAKE_CROSSCOMPILING)
+    set(TESTRUNNER "${PICOFUSE_PREFIX}/bin/testrunner")
+    pkg_get_variable(_platform picosdk platform)
+    string(REGEX REPLACE "-.*$" "" _chip "${_platform}") # rp2350-arm-s => rp2350
+endif()
+
+# objc_test(NAME SOURCES...)
+#
+# Builds a test against the Objective-C runtime, and registers it with CTest.
+function(objc_test NAME)
+    picofuse_executable(
+        NAME ${NAME}
+        LIBRARIES picofuse-sys
+        SOURCES ${ARGN}
+    )
+    target_link_libraries(${NAME} PRIVATE picofuse-objc-gcc)
+    if(CMAKE_CROSSCOMPILING)
+        add_test(NAME ${NAME}
+            COMMAND ${TESTRUNNER} --target target/${_chip}.cfg $<TARGET_FILE:${NAME}>)
+
+        # There's only one board
+        set_tests_properties(${NAME} PROPERTIES RESOURCE_LOCK board)
+    else()
+        add_test(NAME ${NAME} COMMAND ${NAME})
+    endif()
+endfunction()
+
+# Print "hello, world" from a constant string.
+objc_test(objc_001
+    objc_001/main.m
+)
+
+# +initialize is called once, superclass first, with the class as the receiver.
+objc_test(objc_002
+    objc_002/main.m
+)
+
+# Constant strings: length, contents and equality.
+objc_test(objc_003
+    objc_003/main.m
+)
+
+# Instances: class, name, identity, and messages to nil.
+objc_test(objc_004
+    objc_004/main.m
+    TestObject.m
+)
+
+# Instance variables, overriding methods, and calling super.
+objc_test(objc_005
+    objc_005/main.m
+    TestObject.m
+)
+
+# Categories: adding methods to a class, including a root class.
+objc_test(objc_006
+    objc_006/main.m
+    TestObject.m
+)
+
+# A category replaces a method of its class, but not of the superclass.
+objc_test(objc_007
+    objc_007/main.m
+    TestObject.m
+)
+
+# Class messages: to a returned class, and where method types conflict.
+objc_test(objc_008
+    objc_008/main.m
+)
+
+# Root classes, and looking up classes and superclasses by name.
+objc_test(objc_009
+    objc_009/main.m
+)
+
+# Whether classes and instances respond to selectors.
+objc_test(objc_010
+    objc_010/main.m
+    TestObject.m
+)
+
+# Selector names, and the hidden _cmd argument.
+objc_test(objc_011
+    objc_011/main.m
+)
+
+# Type encodings.
+objc_test(objc_012
+    objc_012/main.m
+)
+
+# Instance variables which are bitfields, structs or of a forward class.
+objc_test(objc_013
+    objc_013/main.m
+    TestObject.m
+)
+
+# A subclass without +initialize has its superclass's called for it.
+objc_test(objc_014
+    objc_014/main.m
+)
+
+# Adopting protocols, and objects of type id<protocol>.
+objc_test(objc_015
+    objc_015/main.m
+    TestObject.m
+)
+
+# A class adopts a protocol in a category.
+objc_test(objc_016
+    objc_016/main.m
+    TestObject.m
+)
+
+# Protocol objects: name, equality, and those which no class adopts.
+objc_test(objc_017
+    objc_017/main.m
+)
+
+# A protocol which incorporates another.
+objc_test(objc_018
+    objc_018/main.m
+    TestObject.m
+)
+
+# Variable arguments, and statics within an implementation.
+objc_test(objc_019
+    objc_019/main.m
+)
+
+# The same protocol in more than one module.
+objc_test(objc_020
+    objc_020/main.m
+    objc_020/other.m
+)
