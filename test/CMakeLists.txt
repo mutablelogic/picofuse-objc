@@ -136,3 +136,15 @@ objc_test(objc_020
     objc_020/main.m
     objc_020/other.m
 )
+
+# @synchronized within one thread: nesting, nil, and leaving the block early.
+objc_test(objc_021
+    objc_021/main.m
+    TestObject.m
+)
+
+# @synchronized between two threads.
+objc_test(objc_022
+    objc_022/main.m
+    TestObject.m
+)
