@@ -26,21 +26,6 @@ static NXStatic null_storage;
   return [NXNull nullValue];
 }
 
-- (id)retain {
-  return self;
-}
-
-- (void)release {
-  // It's never deallocated
-}
-
-- (id)autorelease {
-  return self;
-}
-
-- (void)dealloc {
-  sys_panicf("-[NXNull dealloc] can't be deallocated");
-  [super dealloc];
-}
+NX_STATIC_METHODS
 
 @end
