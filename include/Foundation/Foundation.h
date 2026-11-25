@@ -12,6 +12,7 @@
 #if __OBJC__
 
 // Forward Declaration of classes
+@class NXAutoreleasePool;
 @class NXObject;
 @class NXZone;
 
@@ -23,6 +24,7 @@
 
 // Class Definitions
 #include "NXObject.h"
+#include "NXAutoreleasePool.h"
 #include "NXZone.h"
 
 #endif // __OBJC__
