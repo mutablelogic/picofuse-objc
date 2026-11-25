@@ -7,13 +7,6 @@
 // The least that's allocated when a string needs more memory
 #define MIN_CAPACITY 15
 
-///////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS
-
-static BOOL is_whitespace(char ch) {
-  return ch == ' ' || (ch >= '\t' && ch <= '\r');
-}
-
 @interface NXMutableString (Private)
 - (BOOL)append:(const char *)bytes length:(size_t)length;
 @end
@@ -110,19 +103,30 @@ static BOOL is_whitespace(char ch) {
 }
 
 - (void)trimWhitespace {
-  size_t start = 0;
-  while (start < _length && is_whitespace(_data[start])) {
-    start++;
-  }
-  size_t end = _length;
-  while (end > start && is_whitespace(_data[end - 1])) {
-    end--;
-  }
-  if (end - start != _length) {
-    memmove(_data, _data + start, end - start);
-    _length = end - start;
-    _data[_length] = '\0';
-  }
+  sys_string_trimspace(_data);
+  _length = sys_string_bytes(_data);
+}
+
+- (BOOL)trimPrefix:(NXString *)prefix {
+  size_t length = _length;
+  sys_string_trimprefix(_data, [prefix cStr]);
+  _length = sys_string_bytes(_data);
+  return _length != length;
+}
+
+- (BOOL)trimSuffix:(NXString *)suffix {
+  size_t length = _length;
+  sys_string_trimsuffix(_data, [suffix cStr]);
+  _length = sys_string_bytes(_data);
+  return _length != length;
+}
+
+- (void)toUppercase {
+  sys_string_to_upper(_data);
+}
+
+- (void)toLowercase {
+  sys_string_to_lower(_data);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -151,6 +155,9 @@ static BOOL is_whitespace(char ch) {
 @implementation NXMutableString (Private)
 
 - (BOOL)append:(const char *)bytes length:(size_t)length {
+  if (length > 0) {
+    length = strnlen(bytes, length);
+  }
   if (length == 0) {
     return YES;
   }

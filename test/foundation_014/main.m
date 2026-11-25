@@ -72,7 +72,7 @@ static void strings(NXZone *zone) {
   } trims[] = {
       {"", ""},           {"   ", ""},       {"a", "a"},
       {" a", "a"},        {"a ", "a"},       {" \t\r\na b\n ", "a b"},
-      {"\xC2\xA0", "\xC2\xA0"},
+      {"\xC3\xA9 \xC3\xA9 ", "\xC3\xA9 \xC3\xA9"},
   };
   for (size_t i = 0; i < sizeof(trims) / sizeof(trims[0]); i++) {
     string = [NXMutableString stringWithCString:trims[i].before];
