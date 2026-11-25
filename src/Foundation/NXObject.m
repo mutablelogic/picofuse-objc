@@ -87,4 +87,14 @@
   }
 }
 
+- (id)autorelease {
+  NXAutoreleasePool *pool = [NXAutoreleasePool currentPool];
+  if (pool == nil) {
+    sys_panicf("-[%s autorelease] called without an autorelease pool",
+               object_getClassName(self));
+  }
+  [pool addObject:self];
+  return self;
+}
+
 @end

@@ -182,3 +182,15 @@ objc_test(foundation_003
     foundation_003/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Autorelease pools.
+objc_test(foundation_004
+    foundation_004/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Two threads, each with their own autorelease pools.
+objc_test(foundation_005
+    foundation_005/main.m
+    LIBRARIES picofuse-objc-foundation
+)
