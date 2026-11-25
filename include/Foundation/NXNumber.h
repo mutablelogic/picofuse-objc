@@ -36,7 +36,8 @@ uint64_t NXRandUnsignedInt64(void);
  * Numbers can't be changed. They're made in the current autorelease pool, other than
  * zero, true and false: there's only one of each of those, which is never
  * deallocated, and doesn't need a pool. Every number which is made as zero is the same
- * object.
+ * object, other than floating point negative zero, which is made in the pool like any
+ * other.
  *
  * A number can be returned as any type, whatever it was made from. As an integer, the
  * fraction of a floating point value is discarded, and it panics if the value is out of
