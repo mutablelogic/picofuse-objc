@@ -6,22 +6,9 @@
 #include <picofuse/sys.h>
 #include <string.h>
 
-#define CLASS_TABLE_SIZE 32
-objc_class_t *class_table[CLASS_TABLE_SIZE + 1];
+static objc_class_t *class_table[OBJC_CLASS_CAPACITY];
 
 ///////////////////////////////////////////////////////////////////////////////
-
-void __objc_class_init() {
-  static BOOL init = NO;
-  if (init) {
-    return; // Already initialized
-  }
-  init = YES;
-
-  for (int i = 0; i <= CLASS_TABLE_SIZE; i++) {
-    class_table[i] = NULL;
-  }
-}
 
 void __objc_class_register(objc_class_t *p) {
   if (p == NULL || p->name == NULL) {
@@ -31,7 +18,7 @@ void __objc_class_register(objc_class_t *p) {
   sys_printf("__objc_class_register %c[%s] @%p size=%lu\n",
              p->info & objc_class_flag_meta ? '+' : '-', p->name, p, p->size);
 #endif
-  for (int i = 0; i < CLASS_TABLE_SIZE; i++) {
+  for (int i = 0; i < OBJC_CLASS_CAPACITY; i++) {
     if (class_table[i] == p) {
       // Class is already registered, nothing to do
       return;
@@ -63,9 +50,9 @@ objc_class_t *__objc_lookup_class(const char *name) {
   if (name == NULL) {
     return Nil;
   }
-  for (int i = 0; i < CLASS_TABLE_SIZE; i++) {
-    if (class_table[i] == NULL || class_table[i]->name == NULL) {
-      continue; // Skip empty slots and continue searching
+  for (int i = 0; i < OBJC_CLASS_CAPACITY; i++) {
+    if (class_table[i] == NULL) {
+      break; // The rest are empty
     }
     if (strcmp(class_table[i]->name, name) == 0) {
       return class_table[i];
@@ -93,21 +80,10 @@ void __objc_class_register_method_list(objc_class_t *cls,
                cls->info & objc_class_flag_meta ? '+' : '-', cls->name,
                method->name, method->types, method->imp);
 #endif
-    // We register the version WITH the type
-    struct objc_hashitem *item =
-        __objc_hash_register(cls, method->name, method->types, method->imp);
-    if (item == NULL) {
-      sys_panicf("TODO: Failed to register method %s in class %s\n",
-                 method->name, cls->name);
-      return;
-    }
-
-    // We register the version WITHOUT the type
-    item = __objc_hash_register(cls, method->name, NULL, method->imp);
-    if (item == NULL) {
-      sys_panicf("TODO: Failed to register method %s in class %s\n",
-                 method->name, cls->name);
-      return;
+    if (!__objc_hash_register(cls, method)) {
+      sys_panicf("Method table is full, cannot register method: %c[%s %s]",
+                 cls->info & objc_class_flag_meta ? '+' : '-', cls->name,
+                 method->name);
     }
   }
 }

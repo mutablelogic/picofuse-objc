@@ -56,10 +56,6 @@ static void __objc_module_register(struct objc_module *module) {
 }
 
 void __objc_exec_class(struct objc_module *module) {
-  __objc_class_init();
-  __objc_hash_init();
-  __objc_statics_init();
-  __objc_category_init();
   __objc_module_register(module);
 }
 
