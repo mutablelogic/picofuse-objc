@@ -211,3 +211,9 @@ objc_test(foundation_007
     foundation_007/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Numbers.
+objc_test(foundation_008
+    foundation_008/main.m
+    LIBRARIES picofuse-objc-foundation
+)
