@@ -1,14 +1,16 @@
 # picofuse_objc_install(NAME DESCRIPTION <text>
 #                       [REQUIRES <pkg> ...] [CFLAGS <flag> ...]
-#                       [HEADERS <subdir-of-include> ...])
+#                       [LIBS <flag> ...] [HEADERS <subdir-of-include> ...])
 #
 # Installs the static library NAME, its headers and its .pc file, using the same
 # layout as picofuse: include/, and lib/<target>/ for the board or host. CFLAGS
-# are what Objective-C code which uses the library has to be compiled with.
+# are what Objective-C code which uses the library has to be compiled with, and LIBS what
+# it has to be linked with.
 function(picofuse_objc_install NAME)
-    cmake_parse_arguments(_ARG "" "DESCRIPTION" "REQUIRES;CFLAGS;HEADERS" ${ARGN})
+    cmake_parse_arguments(_ARG "" "DESCRIPTION" "REQUIRES;CFLAGS;LIBS;HEADERS" ${ARGN})
     list(JOIN _ARG_REQUIRES " " _requires)
     list(JOIN _ARG_CFLAGS " " _cflags)
+    list(JOIN _ARG_LIBS " " _libs)
     set(_version "${PROGRAM_VERSION}")
     if(NOT _version)
         set(_version "0.0.0")
@@ -32,7 +34,7 @@ Description: ${_ARG_DESCRIPTION} for ${PICOFUSE_TARGET}
 Version: ${_version}
 Requires: ${_requires}
 Cflags: -I\${includedir} ${_cflags}
-Libs: -L\${libdir} -l${NAME}
+Libs: -L\${libdir} ${_libs} -l${NAME}
 ")
     install(FILES ${_pc} DESTINATION lib/${PICOFUSE_TARGET}/pkgconfig)
 endfunction()

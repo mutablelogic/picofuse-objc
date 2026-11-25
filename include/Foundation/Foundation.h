@@ -16,6 +16,7 @@
 @class NXNull;
 @class NXNumber;
 @class NXObject;
+@class NXString;
 @class NXThread;
 @class NXZone;
 
@@ -27,6 +28,8 @@
 #include "NXAutoreleasePool.h"
 #include "NXNull.h"
 #include "NXNumber.h"
+#include "NXString.h"
+#include "NXConstantString.h"
 #include "NXThread.h"
 #include "NXZone.h"
 

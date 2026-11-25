@@ -17,6 +17,12 @@ function(objc_executable NAME)
         SOURCES ${_ARG_UNPARSED_ARGUMENTS}
     )
     target_link_libraries(${NAME} PRIVATE ${_ARG_LIBRARIES} picofuse-objc-gcc)
+
+    # Constant strings are part of Foundation, so the tests have their own otherwise
+    if(NOT "picofuse-objc-foundation" IN_LIST _ARG_LIBRARIES)
+        target_compile_options(${NAME} PRIVATE
+            $<$<COMPILE_LANGUAGE:OBJC>:-fconstant-string-class=TestString>)
+    endif()
 endfunction()
 
 # objc_test_add(NAME COMMAND...)
@@ -63,6 +69,7 @@ endfunction()
 # Print "hello, world" from a constant string.
 objc_test(objc_001
     objc_001/main.m
+    TestString.m
 )
 
 # +initialize is called once, superclass first, with the class as the receiver.
@@ -73,6 +80,7 @@ objc_test(objc_002
 # Constant strings: length, contents and equality.
 objc_test(objc_003
     objc_003/main.m
+    TestString.m
 )
 
 # Instances: class, name, identity, and messages to nil.
@@ -91,6 +99,7 @@ objc_test(objc_005
 objc_test(objc_006
     objc_006/main.m
     TestObject.m
+    TestString.m
 )
 
 # A category replaces a method of its class, but not of the superclass.
@@ -264,3 +273,15 @@ foreach(_case nan inf minus_inf limit minus_limit)
         LIBRARIES picofuse-objc-foundation
     )
 endforeach()
+
+# Constant strings.
+objc_test(foundation_011
+    foundation_011/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Nothing other than a constant string refers to Foundation.
+objc_test(foundation_012
+    foundation_012/main.m
+    LIBRARIES picofuse-objc-foundation
+)
