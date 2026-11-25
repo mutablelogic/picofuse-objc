@@ -1,0 +1,36 @@
+set(NAME "picofuse-objc-gcc")
+
+# mutex.c isn't compiled, as its objc_sync_enter() doesn't lock anything yet.
+add_library(${NAME} STATIC
+    category.c
+    class.c
+    dtable.c
+    hash.c
+    init.m
+    message.c
+    module.c
+    NXConstantString.m
+    Object.m
+    Protocol.m
+    protocol.c
+    statics.c
+)
+target_include_directories(${NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(${NAME} PUBLIC PkgConfig::PICOFUSE_SYS)
+
+# PUBLIC, as everything which uses the runtime has to be compiled for it too
+if(CMAKE_OBJC_COMPILER_ID MATCHES "Clang")
+    set(OBJC_FLAGS -fobjc-runtime=gcc -fno-constant-cfstrings)
+else()
+    set(OBJC_FLAGS -fgnu-runtime)
+endif()
+list(APPEND OBJC_FLAGS -fconstant-string-class=NXConstantString)
+target_compile_options(${NAME} PUBLIC "$<$<COMPILE_LANGUAGE:OBJC>:${OBJC_FLAGS}>")
+
+# Install alongside picofuse, for the same board or host
+picofuse_objc_install(${NAME}
+    DESCRIPTION "Objective-C runtime"
+    REQUIRES picofuse-sys
+    CFLAGS ${OBJC_FLAGS}
+    HEADERS runtime
+)
