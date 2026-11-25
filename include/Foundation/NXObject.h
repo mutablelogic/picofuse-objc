@@ -79,4 +79,11 @@
  */
 - (void)release;
 
+/**
+ * @brief Releases the receiver later, when the current autorelease pool of the
+ * thread is drained. Panics if there's no pool.
+ * @return The receiver.
+ */
+- (id)autorelease;
+
 @end
