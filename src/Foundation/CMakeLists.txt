@@ -3,6 +3,7 @@ set(NAME "picofuse-objc-foundation")
 add_library(${NAME} STATIC
     NXAutoreleasePool.m
     NXDuration.m
+    NXNull.m
     NXNumber.m
     NXNumberFloat.m
     NXNumberInteger.m

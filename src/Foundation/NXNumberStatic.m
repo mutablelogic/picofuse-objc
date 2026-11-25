@@ -1,33 +1,14 @@
 #include "NXNumber+Private.h"
+#include "NXStatic.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 
 ///////////////////////////////////////////////////////////////////////////////
-// TYPES
-
-// Room for an instance of any of the classes here
-typedef union {
-  uint64_t align;
-  unsigned char bytes[64];
-} storage_t;
-
-///////////////////////////////////////////////////////////////////////////////
 // GLOBALS
 
-static storage_t zero_storage;
-static storage_t true_storage;
-static storage_t false_storage;
-
-///////////////////////////////////////////////////////////////////////////////
-// PRIVATE METHODS
-
-// Make a static instance, which is already zero
-static id static_instance(storage_t *storage, Class cls) {
-  objc_assert(class_getInstanceSize(cls) <= sizeof(storage_t));
-  id instance = (id)(void *)storage;
-  object_setClass(instance, cls);
-  return instance;
-}
+static NXStatic zero_storage;
+static NXStatic true_storage;
+static NXStatic false_storage;
 
 @implementation NXNumberStatic
 
@@ -55,7 +36,7 @@ static id static_instance(storage_t *storage, Class cls) {
 // This is before zeroValue can be called
 + (void)initialize {
   if (self == [NXNumberZero class]) {
-    static_instance(&zero_storage, self);
+    NXStaticInstance(&zero_storage, self);
   }
 }
 
@@ -70,9 +51,9 @@ static id static_instance(storage_t *storage, Class cls) {
 // This is before trueValue and falseValue can be called
 + (void)initialize {
   if (self == [NXNumberBool class]) {
-    NXNumberBool *number = static_instance(&true_storage, self);
+    NXNumberBool *number = NXStaticInstance(&true_storage, self);
     number->_value = YES;
-    static_instance(&false_storage, self);
+    NXStaticInstance(&false_storage, self);
   }
 }
 

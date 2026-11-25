@@ -217,3 +217,9 @@ objc_test(foundation_008
     foundation_008/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Null.
+objc_test(foundation_009
+    foundation_009/main.m
+    LIBRARIES picofuse-objc-foundation
+)
