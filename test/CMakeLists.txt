@@ -6,16 +6,18 @@ if(CMAKE_CROSSCOMPILING)
     string(REGEX REPLACE "-.*$" "" _chip "${_platform}") # rp2350-arm-s => rp2350
 endif()
 
-# objc_test(NAME SOURCES...)
+# objc_test(NAME SOURCES... [LIBRARIES <lib> ...])
 #
-# Builds a test against the Objective-C runtime, and registers it with CTest.
+# Builds a test against the Objective-C runtime and any other LIBRARIES, and
+# registers it with CTest.
 function(objc_test NAME)
+    cmake_parse_arguments(_ARG "" "" "LIBRARIES" ${ARGN})
     picofuse_executable(
         NAME ${NAME}
         LIBRARIES picofuse-sys
-        SOURCES ${ARGN}
+        SOURCES ${_ARG_UNPARSED_ARGUMENTS}
     )
-    target_link_libraries(${NAME} PRIVATE picofuse-objc-gcc)
+    target_link_libraries(${NAME} PRIVATE ${_ARG_LIBRARIES} picofuse-objc-gcc)
     if(CMAKE_CROSSCOMPILING)
         add_test(NAME ${NAME}
             COMMAND ${TESTRUNNER} --target target/${_chip}.cfg $<TARGET_FILE:${NAME}>)
@@ -152,4 +154,25 @@ objc_test(objc_022
 # Many classes, categories and methods.
 objc_test(objc_023
     objc_023/main.m
+)
+
+###############################################################################
+# Foundation
+
+# Objects, with and without a default zone.
+objc_test(foundation_001
+    foundation_001/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Zones.
+objc_test(foundation_002
+    foundation_002/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Two threads using objects and a zone.
+objc_test(foundation_003
+    foundation_003/main.m
+    LIBRARIES picofuse-objc-foundation
 )
