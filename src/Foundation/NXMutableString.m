@@ -28,7 +28,7 @@ static BOOL is_whitespace(char ch) {
 }
 
 - (id)initWithCapacity:(size_t)capacity {
-  self = [self init];
+  self = [super init];
   if (self != nil && capacity > 0) {
     if ([self allocateLength:capacity] == NULL) {
       [self release];
@@ -151,6 +151,9 @@ static BOOL is_whitespace(char ch) {
 @implementation NXMutableString (Private)
 
 - (BOOL)append:(const char *)bytes length:(size_t)length {
+  if (length > 0) {
+    length = strnlen(bytes, length);
+  }
   if (length == 0) {
     return YES;
   }

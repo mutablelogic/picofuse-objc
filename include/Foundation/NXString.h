@@ -13,7 +13,8 @@
  * This is the class of any string, including a constant such as `@"string"`, so it's
  * what methods take and return. Other strings copy what they're made from.
  *
- * Strings can't be changed, unless they're an NXMutableString.
+ * Strings can't be changed, unless they're an NXMutableString. They don't contain a zero
+ * byte.
  *
  * A format can have these in it:
  *
@@ -69,7 +70,8 @@
 + (id)stringWithFormat:(NXString *)format, ...;
 
 /**
- * @brief Initializes a string with a number of bytes.
+ * @brief Initializes a string with a number of bytes, or those before the first which is
+ * zero.
  */
 - (id)initWithBytes:(const void *)bytes length:(size_t)length;
 

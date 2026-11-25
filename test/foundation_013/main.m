@@ -29,6 +29,31 @@
 }
 @end
 
+// Its -init uses each initializer of its superclass
+@interface Default : NXMutableString {
+  int _number;
+}
+- (id)initWithNumber:(int)number;
+@end
+
+@implementation Default
+- (id)initWithNumber:(int)number {
+  _number = number;
+  return [self init];
+}
+- (id)init {
+  if (_number == 0) {
+    return [super initWithCString:"default"];
+  } else if (_number == 1) {
+    return [super initWithString:@"default"];
+  } else if (_number == -1) {
+    return [super initWithCapacity:50];
+  }
+  return _number < 100 ? [super initWithFormat:@"%d", _number]
+                       : [super initWithFormat:@"%300d", _number];
+}
+@end
+
 static NXString *format_list(NXString *format, ...) {
   va_list args;
   va_start(args, format);
@@ -60,11 +85,35 @@ static void strings(NXZone *zone) {
   test_assert([[NXString stringWithFormat:@""] isEqual:@""]);
   test_assert([[NXString stringWithFormat:nil] isEqual:@""]);
 
-  // Bytes, which can include zero
-  string = [[NXString alloc] initWithBytes:"a\0b" length:3];
-  test_assert([string length] == 3 && [string cStr][2] == 'b');
-  test_assert([string cStr][3] == '\0' && ![string isEqual:@"a"]);
+  // Bytes, as far as zero
+  string = [[NXString alloc] initWithBytes:"abcd" length:3];
+  test_assert([string isEqual:@"abc"] && [string length] == 3);
   [string release];
+  string = [[NXString alloc] initWithBytes:"a\0b" length:3];
+  test_assert([string isEqual:@"a"] && [string length] == 1);
+  test_assert([[NXString stringWithFormat:@"%@c", string] isEqual:@"ac"]);
+  [string release];
+  string = [[NXString alloc] initWithBytes:"\0b" length:2];
+  test_assert([string isEqual:@""] && [string length] == 0);
+  [string release];
+  test_assert([[NXString stringWithFormat:@"a%cb", 0] isEqual:@"a"]);
+  test_assert([[NXString stringWithFormat:@"a%c%200d", 0, 1] isEqual:@"a"]);
+  NXMutableString *mutable = [NXMutableString stringWithFormat:@"a%cb", 0];
+  test_assert([mutable appendFormat:@"c%cd", 0]);
+  test_assert([mutable appendFormat:@"e%c%200d", 0, 1]);
+  test_assert([mutable isEqual:@"ace"] && [mutable length] == 3);
+
+  // Subclasses which have an initializer of their own
+  Default *initialized = [[[Default alloc] initWithNumber:1] autorelease];
+  test_assert([initialized isEqual:@"default"]);
+  initialized = [[[Default alloc] initWithNumber:2] autorelease];
+  test_assert([initialized isEqual:@"2"]);
+  initialized = [[[Default alloc] initWithNumber:300] autorelease];
+  test_assert([initialized length] == 300);
+  initialized = [[[Default alloc] initWithNumber:-1] autorelease];
+  test_assert([initialized isEqual:@""] && [initialized capacity] == 50);
+  initialized = [[[Default alloc] init] autorelease];
+  test_assert([initialized isEqual:@"default"]);
 
   // Formats
   test_assert([[NXString stringWithFormat:@"%d %s %c %x", -42, "str", 'c', 255]

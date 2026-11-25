@@ -95,7 +95,10 @@ void NXStringBufferRelease(void) {
 }
 
 - (id)initWithBytes:(const void *)bytes length:(size_t)length {
-  self = [self init];
+  self = [super init];
+  if (length > 0) {
+    length = strnlen(bytes, length);
+  }
   if (self != nil && length > 0) {
     char *data = [self allocateLength:length];
     if (data == NULL) {
@@ -124,7 +127,7 @@ void NXStringBufferRelease(void) {
 }
 
 - (id)initWithFormat:(NXString *)format arguments:(va_list)args {
-  self = [self init];
+  self = [super init];
   if (self == nil || format == nil) {
     return self;
   }
@@ -137,11 +140,22 @@ void NXStringBufferRelease(void) {
   } else {
     length = NXStringFormat(formatted, NXSTRING_BUFFER_SIZE, format, args);
     BOOL fits = length < NXSTRING_BUFFER_SIZE;
+    char *data = NULL;
     if (fits) {
-      self = [self initWithBytes:formatted length:length];
+      length = strlen(formatted);
+      if (length > 0) {
+        data = [self allocateLength:length];
+        if (data != NULL) {
+          memcpy(data, formatted, length);
+        }
+      }
     }
     NXStringBufferRelease();
     if (fits) {
+      if (length > 0 && data == NULL) {
+        [self release];
+        return nil;
+      }
       return self;
     }
   }
@@ -154,7 +168,8 @@ void NXStringBufferRelease(void) {
       [self release];
       return nil;
     }
-    size_t actual = NXStringFormat(data, length + 1, format, args);
+    NXStringFormat(data, length + 1, format, args);
+    size_t actual = strlen(data);
     if (actual < length) {
       [self shortenLength:actual];
     }
