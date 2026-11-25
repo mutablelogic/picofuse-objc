@@ -21,7 +21,7 @@
 }
 
 - (id)initWithCapacity:(size_t)capacity {
-  self = [self init];
+  self = [super init];
   if (self != nil && capacity > 0) {
     if ([self allocateLength:capacity] == NULL) {
       [self release];
