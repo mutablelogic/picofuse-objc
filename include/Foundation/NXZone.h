@@ -27,7 +27,8 @@
 
 /**
  * @brief Returns the default zone.
- * @return The default zone, or nil if there isn't one.
+ * @return The default zone, or nil if there isn't one. It isn't retained, so it
+ * can be deallocated if another thread releases it.
  */
 + (NXZone *)defaultZone;
 
