@@ -90,6 +90,9 @@ enum objc_class_flags {
       0x04, // Indicates the class has received the +initialize message
   objc_class_flag_resolved =
       0x08, // Indicates the class has been initialized by the runtime
+  objc_class_flag_initialize_sent =
+      0x20, // Indicates that +initialize has returned, although it may not have
+            // for a superclass
 };
 
 struct objc_category {

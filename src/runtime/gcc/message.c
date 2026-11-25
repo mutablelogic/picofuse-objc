@@ -63,6 +63,38 @@ struct objc_initializing {
 // Those at present, which are on the stacks of their threads
 static struct objc_initializing *initializing = NULL;
 
+// Returns the thread which is sending +initialize to a class or one of its
+// superclasses, or zero
+static uintptr_t __objc_initialize_owner(objc_class_t *cls) {
+  for (; cls != Nil; cls = cls->superclass) {
+    for (struct objc_initializing *node = initializing; node != NULL;
+         node = node->next) {
+      if (node->cls == cls) {
+        return node->owner;
+      }
+    }
+  }
+  return 0;
+}
+
+// Returns YES if a class has been initialized, and marks it as such if it and all of
+// its superclasses have been sent +initialize. A superclass may not have been if it's
+// its +initialize which sent a message to this class.
+static BOOL __objc_initialized(objc_class_t *cls) {
+  unsigned long *info = &cls->metaclass->info;
+  if (__objc_flag_test(info, objc_class_flag_initialized)) {
+    return YES;
+  }
+  if (!__objc_flag_test(info, objc_class_flag_initialize_sent)) {
+    return NO;
+  }
+  if (cls->superclass != Nil && !__objc_initialized(cls->superclass)) {
+    return NO;
+  }
+  __objc_flag_set(info, objc_class_flag_initialized);
+  return YES;
+}
+
 // Begin to send +initialize to a class, and return YES, unless it's already been
 // done, or is being done by this thread, in which case the class can be used. If
 // another thread is doing it, wait until that's done.
@@ -71,15 +103,22 @@ static BOOL __objc_initialize_begin(struct objc_initializing *node,
   uintptr_t self = __objc_thread_self();
   for (;;) {
     __objc_lock();
-    if (cls->metaclass->info & objc_class_flag_initialized) {
+    if (__objc_initialized(cls)) {
       __objc_unlock();
       return NO;
     }
-    struct objc_initializing *found = initializing;
-    while (found != NULL && found->cls != cls) {
-      found = found->next;
+    BOOL sent = __objc_flag_test(&cls->metaclass->info,
+                                 objc_class_flag_initialize_sent);
+    uintptr_t owner = 0;
+    for (struct objc_initializing *n = initializing; n != NULL; n = n->next) {
+      if (n->cls == cls) {
+        owner = n->owner;
+        break;
+      }
     }
-    if (found == NULL) {
+    if (sent) {
+      owner = __objc_initialize_owner(cls);
+    } else if (owner == 0) {
       node->cls = cls;
       node->owner = self;
       node->next = initializing;
@@ -87,16 +126,15 @@ static BOOL __objc_initialize_begin(struct objc_initializing *node,
       __objc_unlock();
       return YES;
     }
-    BOOL mine = found->owner == self;
     __objc_unlock();
-    if (mine) {
+    if (owner == self) {
       return NO;
     }
     __objc_lock_wait();
   }
 }
 
-// Mark a class as having been sent +initialize
+// Record that a class has been sent +initialize
 static void __objc_initialize_end(struct objc_initializing *node) {
   __objc_lock();
   struct objc_initializing **link = &initializing;
@@ -104,7 +142,8 @@ static void __objc_initialize_end(struct objc_initializing *node) {
     link = &(*link)->next;
   }
   *link = node->next;
-  __objc_flag_set(&node->cls->metaclass->info, objc_class_flag_initialized);
+  __objc_flag_set(&node->cls->metaclass->info, objc_class_flag_initialize_sent);
+  __objc_initialized(node->cls);
   __objc_unlock();
 }
 
@@ -190,7 +229,7 @@ IMP objc_msg_lookup(id receiver, SEL selector) {
     sys_panicf(
         "objc_msg_lookup: class=%c[%s %s] selector->types=%s cannot send "
         "message\n",
-        receiver->isa->info & objc_class_flag_meta ? '+' : '-',
+        OBJC_LOAD_RELAXED(&receiver->isa->info) & objc_class_flag_meta ? '+' : '-',
         receiver->isa->name, sel_getName(selector), selector->sel_type);
   } else {
 #ifdef OBJCDEBUG
@@ -200,17 +239,15 @@ IMP objc_msg_lookup(id receiver, SEL selector) {
 
   // If the class has of the receiver not been initialized, then this is the
   // time to do it
-  objc_class_t *meta_cls =
-      cls->info & objc_class_flag_meta ? cls : cls->metaclass;
+  BOOL is_meta = (OBJC_LOAD_RELAXED(&cls->info) & objc_class_flag_meta) != 0;
+  objc_class_t *meta_cls = is_meta ? cls : cls->metaclass;
   if (!__objc_flag_test(&meta_cls->info, objc_class_flag_initialized)) {
 #ifdef OBJCDEBUG
     sys_printf("  +[%s initialize] \n", cls->name);
 #endif
     // Call the class's initialize method. If the receiver's class is a
     // metaclass, then the receiver is itself the class.
-    __objc_send_initialize(cls->info & objc_class_flag_meta
-                               ? (objc_class_t *)receiver
-                               : cls);
+    __objc_send_initialize(is_meta ? (objc_class_t *)receiver : cls);
   }
 
   return imp;
@@ -229,7 +266,9 @@ IMP objc_msg_lookup_super(struct objc_super *super, SEL selector) {
   if (imp == NULL) {
     sys_panicf(
         "objc_msg_lookup: class=%c[%s %s] selector->types=%s not found\n",
-        super->receiver->isa->info & objc_class_flag_meta ? '+' : '-',
+        OBJC_LOAD_RELAXED(&super->receiver->isa->info) & objc_class_flag_meta
+            ? '+'
+            : '-',
         super->receiver->isa->name, sel_getName(selector), selector->sel_type);
   }
   return imp;
@@ -276,7 +315,7 @@ BOOL class_metaclassRespondsToSelector(Class cls, SEL selector) {
   if (cls == Nil) {
     return NO;
   }
-  if (!(cls->info & objc_class_flag_meta)) {
+  if (!(OBJC_LOAD_RELAXED(&cls->info) & objc_class_flag_meta)) {
     cls = cls->metaclass; // Use the metaclass for class methods
   }
   return class_respondsToSelector(

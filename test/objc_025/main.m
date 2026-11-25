@@ -94,6 +94,53 @@ static sys_atomic_t other_done;
 }
 @end
 
+// The superclass uses the class while it's being initialized, but the other thread
+// doesn't until that's finished
+static sys_atomic_t child_initialized, child_calls;
+static sys_atomic_t parent_value;
+
+@interface Parent : Object
++ (int)value;
+@end
+
+@interface Child : Parent
++ (int)touch;
+@end
+
+@interface Grandchild : Child
+@end
+
+@implementation Parent
++ (void)initialize {
+  if (self != [Parent class]) {
+    return;
+  }
+  test_assert([Grandchild touch] == 1);
+  test_assert([Child touch] == 1);
+  sys_atomic_set(&child_initialized, 1);
+  sys_sleep_ms(100);
+  test_assert([Grandchild touch] == 1);
+  sys_atomic_set(&parent_value, 7);
+}
++ (int)value {
+  return (int)sys_atomic_get(&parent_value);
+}
+@end
+
+@implementation Child
++ (void)initialize {
+  if (self == [Child class]) {
+    sys_atomic_inc(&child_calls);
+  }
+}
++ (int)touch {
+  return 1;
+}
+@end
+
+@implementation Grandchild
+@end
+
 static void work(BOOL waiter) {
   uint32_t step = 0;
   FIFTY(CHECK)
@@ -106,6 +153,17 @@ static void work(BOOL waiter) {
     test_assert([Waiter value] == 1);
   } else {
     [Other done];
+  }
+
+  rendezvous(step++);
+  if (waiter) {
+    test_assert([Parent value] == 7);
+  } else {
+    for (int i = 0; i < 2000 && sys_atomic_get(&child_initialized) == 0; i++) {
+      sys_sleep_ms(1);
+    }
+    test_assert([Grandchild value] == 7);
+    test_assert([Child value] == 7);
   }
 }
 
@@ -126,4 +184,5 @@ test_main(0) {
   work(YES);
   sys_waitgroup_wait(wg);
   test_assert(sys_atomic_get(&slow_calls) == 1);
+  test_assert(sys_atomic_get(&child_calls) == 1);
 }

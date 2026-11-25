@@ -11,7 +11,7 @@ struct objc_hashitem {
 };
 
 /*
- * Register a method, replacing any method of the class which has the same name
+ * With the runtime locked, register a method, replacing any method of the class which has the same name
  * and types. Returns false if the table is full.
  */
 bool __objc_hash_register(objc_class_t *cls, struct objc_method *method);
