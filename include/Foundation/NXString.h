@@ -13,7 +13,8 @@
  * This is the class of any string, including a constant such as `@"string"`, so it's
  * what methods take and return. Other strings copy what they're made from.
  *
- * Strings can't be changed, unless they're an NXMutableString.
+ * Strings can't be changed, unless they're an NXMutableString. They don't contain a zero
+ * byte.
  *
  * A format can have these in it:
  *
@@ -69,7 +70,8 @@
 + (id)stringWithFormat:(NXString *)format, ...;
 
 /**
- * @brief Initializes a string with a number of bytes.
+ * @brief Initializes a string with a number of bytes, or those before the first which is
+ * zero.
  */
 - (id)initWithBytes:(const void *)bytes length:(size_t)length;
 
@@ -107,10 +109,44 @@
 - (const char *)cStr;
 
 /**
+ * @brief Returns the number of runes, which are Unicode code points.
+ */
+- (size_t)runeCount;
+
+/**
  * @brief Returns YES if the other object is a string with the same contents, whatever
  * kind it is.
  */
 - (BOOL)isEqual:(id)anObject;
+
+/**
+ * @brief Compares the string with another, byte by byte. If that's nil, it's compared
+ * with an empty string.
+ */
+- (NXComparisonResult)compare:(NXString *)other;
+
+/**
+ * @brief Returns YES if the string starts with another, as it does with nil or an empty
+ * string.
+ */
+- (BOOL)hasPrefix:(NXString *)prefix;
+
+/**
+ * @brief Returns YES if the string ends with another, as it does with nil or an empty
+ * string.
+ */
+- (BOOL)hasSuffix:(NXString *)suffix;
+
+/**
+ * @brief Returns YES if the string has another in it, as it does nil or an empty string.
+ */
+- (BOOL)containsString:(NXString *)other;
+
+/**
+ * @brief Returns the offset, in bytes, of the first place that another string is in this
+ * one, or NXNotFound. It's zero for nil or an empty string.
+ */
+- (size_t)offsetOfString:(NXString *)other;
 
 /**
  * @brief Returns the string itself.

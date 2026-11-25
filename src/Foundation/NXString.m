@@ -96,6 +96,9 @@ void NXStringBufferRelease(void) {
 
 - (id)initWithBytes:(const void *)bytes length:(size_t)length {
   self = [self init];
+  if (length > 0) {
+    length = strnlen(bytes, length);
+  }
   if (self != nil && length > 0) {
     char *data = [self allocateLength:length];
     if (data == NULL) {
@@ -154,7 +157,8 @@ void NXStringBufferRelease(void) {
       [self release];
       return nil;
     }
-    size_t actual = NXStringFormat(data, length + 1, format, args);
+    NXStringFormat(data, length + 1, format, args);
+    size_t actual = strlen(data);
     if (actual < length) {
       [self shortenLength:actual];
     }
@@ -171,6 +175,10 @@ void NXStringBufferRelease(void) {
 
 - (const char *)cStr {
   sys_panicf("-[%s cStr] isn't implemented", object_getClassName(self));
+}
+
+- (size_t)runeCount {
+  return sys_string_runes([self cStr]);
 }
 
 - (NXString *)description {
@@ -191,6 +199,30 @@ void NXStringBufferRelease(void) {
   size_t length = [self length];
   return [other length] == length &&
          memcmp([self cStr], [other cStr], length) == 0;
+}
+
+- (NXComparisonResult)compare:(NXString *)other {
+  ptrdiff_t result = sys_string_compare([self cStr], [other cStr]);
+  return result < 0   ? NXComparisonAscending
+         : result > 0 ? NXComparisonDescending
+                      : NXComparisonSame;
+}
+
+- (BOOL)hasPrefix:(NXString *)prefix {
+  return sys_string_hasprefix([self cStr], [prefix cStr]);
+}
+
+- (BOOL)hasSuffix:(NXString *)suffix {
+  return sys_string_hassuffix([self cStr], [suffix cStr]);
+}
+
+- (BOOL)containsString:(NXString *)other {
+  return [self offsetOfString:other] != NXNotFound;
+}
+
+- (size_t)offsetOfString:(NXString *)other {
+  ptrdiff_t offset = sys_string_contains([self cStr], [other cStr]);
+  return offset < 0 ? NXNotFound : (size_t)offset;
 }
 
 @end

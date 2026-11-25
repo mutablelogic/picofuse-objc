@@ -60,11 +60,22 @@ static void strings(NXZone *zone) {
   test_assert([[NXString stringWithFormat:@""] isEqual:@""]);
   test_assert([[NXString stringWithFormat:nil] isEqual:@""]);
 
-  // Bytes, which can include zero
-  string = [[NXString alloc] initWithBytes:"a\0b" length:3];
-  test_assert([string length] == 3 && [string cStr][2] == 'b');
-  test_assert([string cStr][3] == '\0' && ![string isEqual:@"a"]);
+  // Bytes, as far as zero
+  string = [[NXString alloc] initWithBytes:"abcd" length:3];
+  test_assert([string isEqual:@"abc"] && [string length] == 3);
   [string release];
+  string = [[NXString alloc] initWithBytes:"a\0b" length:3];
+  test_assert([string isEqual:@"a"] && [string length] == 1);
+  [string release];
+  string = [[NXString alloc] initWithBytes:"\0b" length:2];
+  test_assert([string isEqual:@""] && [string length] == 0);
+  [string release];
+  test_assert([[NXString stringWithFormat:@"a%cb", 0] isEqual:@"a"]);
+  test_assert([[NXString stringWithFormat:@"a%c%200d", 0, 1] isEqual:@"a"]);
+  NXMutableString *mutable = [NXMutableString stringWithFormat:@"a%cb", 0];
+  test_assert([mutable appendFormat:@"c%cd", 0]);
+  test_assert([mutable appendFormat:@"e%c%200d", 0, 1]);
+  test_assert([mutable isEqual:@"ace"] && [mutable length] == 3);
 
   // Formats
   test_assert([[NXString stringWithFormat:@"%d %s %c %x", -42, "str", 'c', 255]

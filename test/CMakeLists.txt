@@ -303,3 +303,9 @@ objc_test(foundation_015
     foundation_015/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Comparing, searching and changing strings.
+objc_test(foundation_016
+    foundation_016/main.m
+    LIBRARIES picofuse-objc-foundation
+)
