@@ -64,6 +64,29 @@ static void numbers(void) {
     test_assert(number(invalid[i]) == nil);
   }
   test_assert([NXNumber numberWithString:nil] == nil);
+
+  // Constant strings with a zero in them
+  test_assert([NXNumber numberWithString:@"true\0junk"] == nil);
+  test_assert([NXNumber numberWithString:@"false\0"] == nil);
+  test_assert([NXNumber numberWithString:@"42\0"] == nil);
+
+  // Integers in other bases which don't fit, rather than floats
+  const char *overflow[] = {"0x10000000000000000",  "-0x8000000000000001",
+                            "0b" "1" "0000000000000000000000000000000000000000000000000000000000000000",
+                            "0o2000000000000000000000",
+                            "02000000000000000000000",
+                            "-01000000000000000000001"};
+  for (size_t i = 0; i < sizeof(overflow) / sizeof(overflow[0]); i++) {
+    test_assert(number(overflow[i]) == nil);
+  }
+
+  // Leading zeros of floats, and decimal integers which don't fit
+  test_assert([number("0755.5") float64Value] == 755.5);
+  test_assert([number("07e2") float64Value] == 700.0);
+  test_assert([number("00.5") float64Value] == 0.5);
+  n = number("99999999999999999999");
+  test_assert([n isFloat] && [n float64Value] > 9.9999e19 &&
+              [n float64Value] < 1.0001e20);
 }
 
 static void strings(NXZone *zone) {

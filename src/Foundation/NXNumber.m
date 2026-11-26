@@ -1,6 +1,7 @@
 #include "NXNumber+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // PRIVATE METHODS
@@ -45,6 +46,27 @@ static BOOL exact_value(NXNumber *number, BOOL *negative, uint64_t *magnitude) {
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+// Returns YES if a string is an integer in hex, binary or octal, which can't
+// be read as a float
+static BOOL is_based_integer(const char *cStr, size_t length) {
+  size_t i = (length > 0 && (cStr[0] == '+' || cStr[0] == '-')) ? 1 : 0;
+  if (length < i + 2 || cStr[i] != '0') {
+    return NO;
+  }
+  char c = cStr[i + 1];
+  if (c == 'x' || c == 'X' || c == 'b' || c == 'B' || c == 'o' || c == 'O') {
+    return YES;
+  }
+
+  // "0755" is octal, but "0755.5" and "07e5" are floats
+  for (size_t j = i + 1; j < length; j++) {
+    if (cStr[j] < '0' || cStr[j] > '9') {
+      return NO;
+    }
+  }
+  return YES;
+}
+
 int32_t NXRandInt32(void) { return (int32_t)sys_random_uint32(); }
 
 uint32_t NXRandUnsignedInt32(void) { return sys_random_uint32(); }
@@ -73,7 +95,9 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 + (NXNumber *)numberWithString:(NXString *)string {
   const char *cStr = [string cStr];
   size_t length = [string length];
-  if (length == 0) {
+
+  // A constant string can have a zero in it, which ends a number early
+  if (length == 0 || strnlen(cStr, length) != length) {
     return nil;
   }
   bool boolean;
@@ -86,7 +110,8 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
     return [self numberWithInt64:signed_value];
   } else if (sys_string_parse_uint64(cStr, length, &unsigned_value)) {
     return [self numberWithUnsignedInt64:unsigned_value];
-  } else if (sys_string_parse_float64(cStr, length, &float_value)) {
+  } else if (!is_based_integer(cStr, length) &&
+             sys_string_parse_float64(cStr, length, &float_value)) {
     return [self numberWithFloat64:float_value];
   }
   return nil;
