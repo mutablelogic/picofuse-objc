@@ -108,15 +108,13 @@ static int stdin_peeked = NXStreamEnd;
   return position < 0 ? NXNotFound : (size_t)position;
 }
 
-- (BOOL)setPosition:(size_t)position {
-  return position <= PTRDIFF_MAX &&
-         sys_iostream_seek(_stream, (ptrdiff_t)position, true) >= 0;
-}
-
-- (BOOL)movePosition:(ptrdiff_t)offset {
+- (BOOL)seek:(ptrdiff_t)offset relative:(BOOL)relative {
   // Some streams without a position can go back a byte, which isn't wanted
-  return [self position] != NXNotFound &&
-         sys_iostream_seek(_stream, offset, false) >= 0;
+  if (relative) {
+    return [self position] != NXNotFound &&
+           sys_iostream_seek(_stream, offset, false) >= 0;
+  }
+  return offset >= 0 && sys_iostream_seek(_stream, offset, true) >= 0;
 }
 
 - (BOOL)isEnded {
