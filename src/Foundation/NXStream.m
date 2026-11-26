@@ -2,6 +2,7 @@
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 // The most that's read at a time, when reading a string
 #define READ_SIZE 64
@@ -12,6 +13,13 @@
 @interface NXStream (Lifecycle)
 - (id)initWithStream:(sys_iostream_t *)stream owned:(BOOL)owned;
 @end
+
+@interface NXStream (Peeked)
+- (int *)peeked;
+@end
+
+// A byte of the standard input which has been peeked at, shared by all its streams
+static int stdin_peeked = NXStreamEnd;
 
 @implementation NXStream
 
@@ -106,12 +114,14 @@
 }
 
 - (BOOL)movePosition:(ptrdiff_t)offset {
-  return sys_iostream_seek(_stream, offset, false) >= 0;
+  // Some streams without a position can go back a byte, which isn't wanted
+  return [self position] != NXNotFound &&
+         sys_iostream_seek(_stream, offset, false) >= 0;
 }
 
 - (BOOL)isEnded {
   return _stream == NULL ||
-         (_peeked == NXStreamEnd && sys_iostream_eof(_stream));
+         (*[self peeked] == NXStreamEnd && sys_iostream_eof(_stream));
 }
 
 - (BOOL)isClosed {
@@ -122,8 +132,12 @@
 // PUBLIC METHODS
 
 - (int)peek {
-  if (_peeked != NXStreamEnd || _stream == NULL) {
-    return _peeked;
+  int *peeked = [self peeked];
+  if (_stream == NULL) {
+    return NXStreamEnd;
+  }
+  if (*peeked != NXStreamEnd) {
+    return *peeked;
   }
   if (sys_iostream_seek(_stream, 0, false) >= 0) {
     return sys_iostream_peek(_stream);
@@ -132,19 +146,20 @@
   // If the stream can't go back, keep the byte until it's read
   unsigned char byte;
   if (sys_iostream_read(_stream, (char *)&byte, 1) == 1) {
-    _peeked = byte;
+    *peeked = byte;
   }
-  return _peeked;
+  return *peeked;
 }
 
 - (size_t)readBytes:(void *)bytes length:(size_t)length {
-  if (length == 0) {
+  if (_stream == NULL || length == 0) {
     return 0;
   }
-  if (_peeked != NXStreamEnd) {
+  int *peeked = [self peeked];
+  if (*peeked != NXStreamEnd) {
     // There may be nothing else to read, in which case it might wait
-    *(char *)bytes = (char)_peeked;
-    _peeked = NXStreamEnd;
+    *(char *)bytes = (char)*peeked;
+    *peeked = NXStreamEnd;
     return 1;
   }
   return sys_iostream_read(_stream, bytes, length);
@@ -169,6 +184,11 @@
     }
     length -= count;
 
+    // It stops at a zero byte
+    if (strlen(buffer) < count) {
+      break;
+    }
+
     // Reading again might wait, unless it's known that it won't
     if (!has_position) {
       break;
@@ -186,6 +206,10 @@
 }
 
 - (void)close {
+  // What's been peeked at in the standard input is kept, unless it's closed
+  if (_owned || _stream != sys_stdin) {
+    *[self peeked] = NXStreamEnd;
+  }
   if (_owned) {
     sys_iostream_close(_stream);
   }
@@ -197,6 +221,15 @@
     NXZoneFree([self zone], _buffer);
     _buffer = NULL;
   }
+}
+
+@end
+
+@implementation NXStream (Peeked)
+
+// Where a byte which has been peeked at is kept
+- (int *)peeked {
+  return _stream != NULL && _stream == sys_stdin ? &stdin_peeked : &_peeked;
 }
 
 @end

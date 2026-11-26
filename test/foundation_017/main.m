@@ -147,6 +147,25 @@ static void streams(NXZone *zone) {
   test_assert([stream writeString:@"x"] == 0);
   test_assert(![stream setPosition:0] && ![stream movePosition:0]);
 
+  // A zero byte ends a string, even after more than is read at a time
+  drain();
+  stream = [NXStream streamWithCapacity:200];
+  test_assert([stream writeBytes:"a" length:2] == 2);
+  for (int i = 0; i < 100; i++) {
+    test_assert([stream writeString:@"-"] == 1);
+  }
+  test_assert([stream writeString:@"tail"] == 4);
+  test_assert([stream setPosition:0]);
+  test_assert([[stream readStringWithLength:200] isEqual:@"a"]);
+
+  // One which isn't initialized with anything is closed
+  stream = [[[NXStream alloc] init] autorelease];
+  test_assert([stream isClosed] && [stream isEnded]);
+  test_assert([stream peek] == NXStreamEnd);
+  test_assert([stream readBytes:&byte length:1] == 0);
+  test_assert([stream readStringWithLength:1] == nil);
+  test_assert(![stream movePosition:0] && [stream position] == NXNotFound);
+
   // Those which cannot be made
   test_assert([NXStream streamWithString:nil] == nil);
   test_assert([NXStream streamWithCapacity:SIZE_MAX] == nil);
@@ -197,6 +216,19 @@ test_main(0) {
   test_assert([[input readStringWithLength:100] isEqual:@"def"]);
   test_assert(write(fds[1], "g", 1) == 1 && [input peek] == 'g');
   test_assert([[input readStringWithLength:100] isEqual:@"g"]);
+
+  // What's peeked at is kept for every stream of it, even when one is closed
+  test_assert(write(fds[1], "hij", 3) == 3);
+  NXStream *other = [NXStream standardInput];
+  test_assert([input peek] == 'h' && [other peek] == 'h');
+  test_assert([other readBytes:bytes length:1] == 1 && bytes[0] == 'h');
+  test_assert([input peek] == 'i');
+  [input close];
+  test_assert([input peek] == NXStreamEnd);
+  test_assert([other readBytes:bytes length:1] == 1 && bytes[0] == 'i');
+  test_assert(![other movePosition:-1]);
+  test_assert([other readBytes:bytes length:4] == 1 && bytes[0] == 'j');
+  input = other;
 
   // Until the end
   test_assert(close(fds[1]) == 0);
