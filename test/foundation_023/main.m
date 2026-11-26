@@ -35,6 +35,44 @@ static int alive = 0;
 }
 @end
 
+// An object which empties an array when it's deallocated
+static NXArray *emptied = nil;
+
+@interface Emptier : NXObject
+@end
+
+@implementation Emptier
+- (void)dealloc {
+  [emptied removeAllObjects];
+  [super dealloc];
+}
+@end
+
+// Objects whose dealloc changes the array they're being removed from
+static void reentrant(void) {
+  emptied = [[NXArray alloc] init];
+  NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
+  Emptier *emptier = [[Emptier alloc] init];
+  test_assert([emptied appendObject:emptier] && [emptied appendObject:@"a"]);
+  [emptier release];
+  test_assert([emptied replaceObjectAtIndex:0 withObject:@"b"]);
+  test_assert([emptied count] == 0);
+
+  emptier = [[Emptier alloc] init];
+  test_assert([emptied appendObject:@"a"] && [emptied appendObject:emptier]);
+  [emptier release];
+  test_assert([emptied removeObjectAtIndex:1] && [emptied count] == 0);
+
+  emptier = [[Emptier alloc] init];
+  test_assert([emptied appendObject:emptier] && [emptied appendObject:@"a"]);
+  [emptier release];
+  [emptied removeAllObjects];
+  test_assert([emptied count] == 0);
+  [pool release];
+  [emptied release];
+  emptied = nil;
+}
+
 static void arrays(NXZone *zone) {
   // Empty
   NXArray *array = [NXArray array];
@@ -163,6 +201,7 @@ test_main(0) {
   }
   retaining();
   test_assert(alive == 0);
+  reentrant();
 
   // In a zone, where an arena is too small for all of it
   NXZone *zone = [NXZone zoneWithSize:4096];
