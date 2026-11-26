@@ -6,6 +6,7 @@ add_library(${NAME} STATIC
     NXConstantString.m
     NXDate.m
     NXDuration.m
+    NXLog.m
     NXMutableString.m
     NXNull.m
     NXNumber.m
