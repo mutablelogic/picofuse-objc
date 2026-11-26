@@ -357,3 +357,9 @@ objc_test(foundation_024
     foundation_024/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Maps.
+objc_test(foundation_025
+    foundation_025/main.m
+    LIBRARIES picofuse-objc-foundation
+)
