@@ -2,6 +2,7 @@
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 // Enough for what an arena uses to keep track of one allocation
 #define ARENA_OVERHEAD 64
@@ -198,6 +199,36 @@ static sys_mem_stats_t arena_stats(sys_mem_arena_t *arena) {
 @end
 
 @implementation NXZone (Private)
+
+- (void *)reallocWithSize:(size_t)size pointer:(void *)ptr oldSize:(size_t)oldSize {
+  if (ptr == NULL) {
+    return [self allocWithSize:size];
+  }
+  if (size == 0) {
+    [self free:ptr];
+    return NULL;
+  }
+
+  // In the arena which has it, in place if there's room. Other arenas return NULL.
+  @synchronized(self) {
+    for (sys_mem_arena_t *arena = _arena; arena != NULL;
+         arena = sys_mem_arena_next(arena, NULL)) {
+      void *moved = sys_mem_arena_realloc(arena, ptr, size);
+      if (moved != NULL) {
+        return moved;
+      }
+    }
+  }
+
+  // Or else elsewhere in the zone
+  void *moved = [self allocWithSize:size];
+  if (moved == NULL) {
+    return NULL;
+  }
+  memcpy(moved, ptr, oldSize < size ? oldSize : size);
+  [self free:ptr];
+  return moved;
+}
 
 + (void *)allocWithSize:(size_t)size defaultZone:(NXZone **)zone {
   *zone = nil;
