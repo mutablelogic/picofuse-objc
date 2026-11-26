@@ -138,10 +138,11 @@
     return NO;
   }
 
-  // Retained first, in case it's the same object
-  [object retain];
-  [_objects[index] release];
-  _objects[index] = object;
+  // The old one is released once it's out of the array, in case its dealloc
+  // uses the array, and the new one is retained first, in case it's the same
+  id old = _objects[index];
+  _objects[index] = [object retain];
+  [old release];
   return YES;
 }
 
