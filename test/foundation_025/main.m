@@ -33,13 +33,21 @@ static int alive = 0;
   collider->_value = value;
   return collider;
 }
+// Zero, so they're in the first slots of the table, one after another, without wrapping
+// around to the start
 - (uintptr_t)hash {
-  return 42;
+  return 0;
 }
 - (BOOL)isEqual:(id)anObject {
   return object_isKindOfClass(anObject, [Collider class]) &&
          ((Collider *)anObject)->_value == _value;
 }
+@end
+
+// An object which looks for a key in a map when it's deallocated
+static int looked = 0, found = 0;
+
+@interface Looker : NXObject
 @end
 
 // An object which removes a key from a map when it's deallocated, which moves the keys
@@ -52,6 +60,16 @@ static NXMap *changed = nil;
 @implementation Remover
 - (void)dealloc {
   [changed removeObjectForKey:[Collider collider:1]];
+  [super dealloc];
+}
+@end
+
+@implementation Looker
+- (void)dealloc {
+  looked++;
+  if ([[changed objectForKey:[Collider collider:2]] isEqual:@"y"]) {
+    found++;
+  }
   [super dealloc];
 }
 @end
@@ -201,6 +219,24 @@ static void retaining(void) {
       [changed removeAllObjects];
     }
     test_assert([changed objectForKey:[Collider collider:1]] == nil);
+    [changed removeAllObjects];
+    [pool drain];
+  }
+
+  // A dealloc which looks for a key which collides with the one being removed, which can
+  // still be found
+  for (int round = 0; round < 2; round++) {
+    looked = found = 0;
+    test_assert([changed setObject:[[[Looker alloc] init] autorelease]
+                            forKey:[Collider collider:1]]);
+    test_assert([changed setObject:@"y" forKey:[Collider collider:2]]);
+    [pool drain];
+    if (round == 0) {
+      [changed removeAllObjects];
+    } else {
+      test_assert([changed removeObjectForKey:[Collider collider:1]]);
+    }
+    test_assert(looked == 1 && found == 1);
     [changed removeAllObjects];
     [pool drain];
   }

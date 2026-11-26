@@ -16,6 +16,7 @@ typedef struct {
 @interface NXMap (Private)
 - (BOOL)resize:(size_t)capacity;
 - (size_t)find:(id)key;
+- (void)removeAtIndex:(size_t)index;
 @end
 
 // Returns the size of table needed for a number of keys, so it's no more than three
@@ -139,44 +140,17 @@ static size_t capacity_for(size_t count) {
   if (index == NXNotFound) {
     return NO;
   }
-  entry_t *entries = _entries;
-  size_t mask = _capacity - 1;
-  entry_t removed = entries[index];
-
-  // Move back those after it which would otherwise not be found, so there are no gaps
-  // between where a key belongs and where it is
-  size_t hole = index;
-  for (size_t i = (hole + 1) & mask; entries[i].key != nil; i = (i + 1) & mask) {
-    size_t home =
-        (size_t)(((uint64_t)[entries[i].key hash] * UINT64_C(0x9E3779B97F4A7C15)) >>
-                 _shift);
-    if (((i - home) & mask) >= ((i - hole) & mask)) {
-      entries[hole] = entries[i];
-      hole = i;
-    }
-  }
-  entries[hole].key = nil;
-  entries[hole].object = nil;
-  _count--;
-
-  // Released once they're out of the map, in case their dealloc uses it
-  [removed.key release];
-  [removed.object release];
+  [self removeAtIndex:index];
   return YES;
 }
 
 - (void)removeAllObjects {
-  // A dealloc may change the map, and move what's left, so look again until it's empty
+  // Each is removed as removeObjectForKey: does, so what's left can always be found. A
+  // dealloc may change the map, so look again until it's empty.
   while (_count > 0) {
     for (size_t i = 0; i < _capacity && _count > 0; i++) {
-      entry_t *entry = &((entry_t *)_entries)[i];
-      if (entry->key != nil) {
-        entry_t removed = *entry;
-        entry->key = nil;
-        entry->object = nil;
-        _count--;
-        [removed.key release];
-        [removed.object release];
+      while (i < _capacity && ((entry_t *)_entries)[i].key != nil) {
+        [self removeAtIndex:i];
       }
     }
   }
@@ -303,6 +277,30 @@ static size_t capacity_for(size_t count) {
   _capacity = capacity;
   _shift = shift;
   return YES;
+}
+
+// Removes the key and object at an index, moving back those after it which would
+// otherwise not be found, so there are no gaps between where a key belongs and where it
+// is. They're released once they're out of the map, in case their dealloc uses it.
+- (void)removeAtIndex:(size_t)index {
+  entry_t *entries = _entries;
+  size_t mask = _capacity - 1;
+  entry_t removed = entries[index];
+  size_t hole = index;
+  for (size_t i = (hole + 1) & mask; entries[i].key != nil; i = (i + 1) & mask) {
+    size_t home =
+        (size_t)(((uint64_t)[entries[i].key hash] * UINT64_C(0x9E3779B97F4A7C15)) >>
+                 _shift);
+    if (((i - home) & mask) >= ((i - hole) & mask)) {
+      entries[hole] = entries[i];
+      hole = i;
+    }
+  }
+  entries[hole].key = nil;
+  entries[hole].object = nil;
+  _count--;
+  [removed.key release];
+  [removed.object release];
 }
 
 // Returns the index of a key in the table, or NXNotFound
