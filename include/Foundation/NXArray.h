@@ -139,6 +139,17 @@
 - (BOOL)isEqual:(id)anObject;
 
 /**
+ * @brief Returns a hash of the objects, in order, which is the same for equal arrays.
+ */
+- (uintptr_t)hash;
+
+/**
+ * @brief Returns a new array of the same objects, which are retained by it too, or nil if
+ * there isn't enough memory. The caller owns it and has to release it.
+ */
+- (id)copy;
+
+/**
  * @brief Returns the descriptions of the objects, such as "[1, 2, three]".
  */
 - (NXString *)description;

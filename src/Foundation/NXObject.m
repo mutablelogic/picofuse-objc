@@ -84,6 +84,14 @@ static inline uint32_t release_count(NXObjectHeader *header) {
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+- (id)copy {
+  return [self retain];
+}
+
+- (uintptr_t)hash {
+  return (uintptr_t)self;
+}
+
 - (id)retain {
   sys_atomic_inc(&NXObjectGetHeader(self)->retain);
   return self;

@@ -136,6 +136,11 @@
 - (BOOL)isEqual:(id)anObject;
 
 /**
+ * @brief Returns a hash of the contents, which is the same for equal strings.
+ */
+- (uintptr_t)hash;
+
+/**
  * @brief Compares the string with another, byte by byte. If that's nil, it's compared
  * with an empty string.
  */

@@ -15,6 +15,20 @@ typedef struct {
 /*
  * Returns the header of an instance
  */
+/*
+ * Folds a 64-bit value into a hash, which is 32 bits on some systems
+ */
+static inline uintptr_t NXHashFold(uint64_t value) {
+  return (uintptr_t)(value ^ (value >> 32));
+}
+
+/*
+ * Combines a hash with another, for one made from several
+ */
+static inline uintptr_t NXHashCombine(uintptr_t hash, uintptr_t other) {
+  return hash * 31 + other;
+}
+
 static inline NXObjectHeader *NXObjectGetHeader(NXObject *object) {
   return (NXObjectHeader *)(void *)object - 1;
 }

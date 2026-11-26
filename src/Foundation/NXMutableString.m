@@ -33,6 +33,10 @@
   return self;
 }
 
+- (id)copy {
+  return [[NXString allocWithZone:[self zone]] initWithString:self];
+}
+
 - (void)dealloc {
   if (_data != NULL) {
     NXZoneFree([self zone], _data);
