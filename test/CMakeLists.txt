@@ -339,3 +339,9 @@ objc_test(foundation_021
     foundation_021/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Durations and dates from strings.
+objc_test(foundation_022
+    foundation_022/main.m
+    LIBRARIES picofuse-objc-foundation
+)

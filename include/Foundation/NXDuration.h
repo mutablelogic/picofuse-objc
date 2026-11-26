@@ -70,7 +70,8 @@ uint32_t NXDurationMilliseconds(NXDuration duration);
 NXDuration NXDurationTimestamp(void);
 
 /**
- * @brief Returns a description of a duration, such as "1 day 2h 3m 4s 5ms 6us 7ns".
+ * @brief Returns a description of a duration, such as "1d2h3m4s5ms6us7ns", which
+ * NXDurationFromString reads.
  * @ingroup Foundation
  * @param duration The duration.
  * @param truncate The unit to which the duration is truncated, or zero for none.
@@ -78,3 +79,16 @@ NXDuration NXDurationTimestamp(void);
  * the current autorelease pool.
  */
 NXString *NXDurationDescription(NXDuration duration, NXDuration truncate);
+
+/**
+ * @brief Reads a duration from a string.
+ * @ingroup Foundation
+ * @param string The whole of it is a duration: an optional sign, then one or more
+ * amounts, each a number and a unit, without spaces, such as "1h30m", "1.5s", "-250ms"
+ * or "1d2h3m". The units are "d", "day" or "days", "h", "m", "s", "ms", "us" or "µs",
+ * and "ns". Any part of a nanosecond is dropped.
+ * @param duration Where to put the duration, which isn't changed if it can't be read.
+ * @return YES if it was read, or NO if it isn't a duration or doesn't fit, which is
+ * about 292 years.
+ */
+BOOL NXDurationFromString(NXString *string, NXDuration *duration);
