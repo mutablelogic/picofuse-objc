@@ -14,6 +14,7 @@
 // Forward Declaration of classes
 @class NXArray;
 @class NXAutoreleasePool;
+@class NXMap;
 @class NXDate;
 @class NXMutableString;
 @class NXNull;
@@ -45,6 +46,7 @@
 #include "NXDate.h"
 #include "NXMutableString.h"
 #include "NXArray.h"
+#include "NXMap.h"
 #include "NXStream.h"
 #include "NXScanner.h"
 #include "NXThread.h"
