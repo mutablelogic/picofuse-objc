@@ -1,5 +1,6 @@
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
@@ -24,7 +25,7 @@ NXString *NXDurationDescription(NXDuration duration, NXDuration truncate) {
     NXDuration unit;
     const char *name, *plural;
   } units[] = {
-      {NXDay, " day", " days"},     {NXHour, "h", "h"},
+      {NXDay, "d", "d"},            {NXHour, "h", "h"},
       {NXMinute, "m", "m"},         {NXSecond, "s", "s"},
       {NXMillisecond, "ms", "ms"},  {NXMicrosecond, "us", "us"},
       {NXNanosecond, "ns", "ns"},
@@ -54,8 +55,19 @@ NXString *NXDurationDescription(NXDuration duration, NXDuration truncate) {
                            count == 1 ? units[i].name : units[i].plural]) {
         return nil;
       }
-      separator = " ";
+      separator = "";
     }
   }
   return description;
+}
+
+BOOL NXDurationFromString(NXString *string, NXDuration *duration) {
+  const char *cStr = [string cStr];
+  size_t length = [string length];
+
+  // A constant string can have a zero in it, which ends a duration early
+  if (length == 0 || strnlen(cStr, length) != length) {
+    return NO;
+  }
+  return sys_string_parse_duration(cStr, length, duration);
 }

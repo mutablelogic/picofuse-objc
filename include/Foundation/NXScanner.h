@@ -34,6 +34,9 @@ typedef enum {
   NXScannerNumbersBinary = sys_scanner_numbers_binary,   ///< And 0b101
   NXScannerNumbersHex = sys_scanner_numbers_hex,         ///< And 0x1F
   NXScannerNumbersFloat = sys_scanner_numbers_float,     ///< And 3.14 or 1e-3
+  NXScannerDatesISO8601 = sys_scanner_dates_iso8601, ///< Dates such as 2026-09-06T11:37:05Z
+  NXScannerDates = sys_scanner_dates,                ///< Dates in every format scanned
+  NXScannerDurations = sys_scanner_durations,        ///< Durations such as 1h30m or 1.5s
 } NXScannerFlags;
 
 /**
@@ -59,6 +62,8 @@ typedef enum {
   NXScannerClassString = sys_scanner_string, ///< A string, with its quotes (NXScannerQuotes)
   NXScannerClassComment = sys_scanner_comment, ///< A comment (NXScannerComments)
   NXScannerClassNumber = sys_scanner_number,   ///< A number (NXScannerNumbers)
+  NXScannerClassDate = sys_scanner_date,       ///< A date (NXScannerDates)
+  NXScannerClassDuration = sys_scanner_duration, ///< A duration (NXScannerDurations)
 } NXScannerClass;
 
 /**
