@@ -327,3 +327,9 @@ objc_test(foundation_019
     foundation_019/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Dates.
+objc_test(foundation_020
+    foundation_020/main.m
+    LIBRARIES picofuse-objc-foundation
+)
