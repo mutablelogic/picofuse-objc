@@ -61,18 +61,18 @@ test_main(0) {
   // Durations
   check_duration(0, 0, "0s");
   check_duration(NXSecond, 0, "1s");
-  check_duration(NXDay, 0, "1 day");
-  check_duration(2 * NXDay + NXHour, 0, "2 days 1h");
+  check_duration(NXDay, 0, "1d");
+  check_duration(2 * NXDay + NXHour, 0, "2d1h");
   check_duration(NXDay + 2 * NXHour + 3 * NXMinute + 4 * NXSecond +
                      5 * NXMillisecond + 6 * NXMicrosecond + 7,
-                 0, "1 day 2h 3m 4s 5ms 6us 7ns");
-  check_duration(-90 * NXSecond, 0, "-1m 30s");
+                 0, "1d2h3m4s5ms6us7ns");
+  check_duration(-90 * NXSecond, 0, "-1m30s");
   check_duration(500 * NXMicrosecond, 0, "500us");
   check_duration(500 * NXMicrosecond, NXMillisecond, "0s");
   check_duration(1500 * NXMillisecond, NXSecond, "1s");
   check_duration(-1500 * NXMillisecond, NXSecond, "-1s");
-  check_duration(INT64_MAX, NXDay, "106751 days");
-  check_duration(INT64_MIN, 0, "-106751 days 23h 47m 16s 854ms 775us 808ns");
+  check_duration(INT64_MAX, NXDay, "106751d");
+  check_duration(INT64_MIN, 0, "-106751d23h47m16s854ms775us808ns");
 
   [pool release];
 }

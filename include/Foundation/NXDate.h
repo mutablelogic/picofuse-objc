@@ -86,6 +86,26 @@ typedef enum {
            seconds:(uint8_t)seconds;
 
 /**
+ * @brief Returns a date read from a string in a format.
+ * @param string The whole of it is a date in the format:
+ * - NXDateFormatISO8601: "2026-09-06T11:37:05Z", with an optional fraction of a second,
+ *   and "Z" or an offset such as "+01:00". Or just a date, "2026-09-06", which is
+ *   midnight UTC.
+ * - NXDateFormatRFC2822: "Sun, 06 Sep 2026 11:37:05 GMT", where the weekday is optional
+ *   but must be right, and the zone can be "GMT", "UTC" or an offset such as "+0100".
+ * - NXDateFormatLog: "2026-09-06 11:37:05", in UTC.
+ * @return The date, in the time zone it was written in, or nil if it isn't a date in the
+ * format or doesn't exist.
+ */
++ (id)dateWithString:(NXString *)string format:(NXDateFormat)format;
+
+/**
+ * @brief Returns a date read from a string in any of the formats, which are tried in turn,
+ * or nil if it isn't one.
+ */
++ (id)dateWithString:(NXString *)string;
+
+/**
  * @brief Sets the clock of the system.
  * @return YES if it was set. On a Mac or Linux, that needs permission.
  *
@@ -112,6 +132,11 @@ typedef enum {
              hours:(uint8_t)hours
            minutes:(uint8_t)minutes
            seconds:(uint8_t)seconds;
+
+/**
+ * @brief Initializes a date read from a string in a format.
+ */
+- (id)initWithString:(NXString *)string format:(NXDateFormat)format;
 
 /**
  * @brief Returns the number of whole seconds since 1970-01-01 in UTC, which is negative

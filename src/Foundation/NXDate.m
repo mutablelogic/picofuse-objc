@@ -1,5 +1,6 @@
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
+#include <string.h>
 
 // The most bytes of a date which is written
 #define STRING_SIZE 48
@@ -47,6 +48,22 @@
                              seconds:seconds] autorelease];
 }
 
++ (id)dateWithString:(NXString *)string format:(NXDateFormat)format {
+  return [[[self alloc] initWithString:string format:format] autorelease];
+}
+
++ (id)dateWithString:(NXString *)string {
+  static const NXDateFormat formats[] = {NXDateFormatISO8601, NXDateFormatRFC2822,
+                                         NXDateFormatLog};
+  for (size_t i = 0; i < sizeof(formats) / sizeof(formats[0]); i++) {
+    NXDate *date = [self dateWithString:string format:formats[i]];
+    if (date != nil) {
+      return date;
+    }
+  }
+  return nil;
+}
+
 + (BOOL)setCurrentDate:(NXDate *)date {
   return date != nil && sys_date_set_now(&date->_date);
 }
@@ -79,6 +96,19 @@
   sys_date_t date = {0};
   if (!sys_date_set_date_utc(&date, year, month, day) ||
       !sys_date_set_time_utc(&date, hours, minutes, seconds)) {
+    [self release];
+    return nil;
+  }
+  return [self initWithDate:&date];
+}
+
+- (id)initWithString:(NXString *)string format:(NXDateFormat)format {
+  // A constant string can have a zero in it, which ends a date early
+  const char *cStr = [string cStr];
+  size_t length = [string length];
+  sys_date_t date;
+  if (length == 0 || strnlen(cStr, length) != length ||
+      !sys_date_parse(cStr, length, (sys_date_format_t)format, &date)) {
     [self release];
     return nil;
   }
