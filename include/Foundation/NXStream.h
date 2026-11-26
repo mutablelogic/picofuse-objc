@@ -124,19 +124,13 @@
 
 /**
  * @brief Changes the position.
- * @param position The number of bytes from the start.
- * @return YES if successful, or NO if the stream doesn't have a position, or it's beyond
- * the end, in which case it's not changed.
- */
-- (BOOL)setPosition:(size_t)position;
-
-/**
- * @brief Changes the position.
- * @param offset The number of bytes from the position, which is backwards if negative.
+ * @param offset The number of bytes from the start, or from the position if relative, in
+ * which case it's backwards if negative.
+ * @param relative YES if it's from the position, or NO if it's from the start.
  * @return YES if successful, or NO if the stream doesn't have a position, or it's before
  * the start or beyond the end, in which case it's not changed.
  */
-- (BOOL)movePosition:(ptrdiff_t)offset;
+- (BOOL)seek:(ptrdiff_t)offset relative:(BOOL)relative;
 
 /**
  * @brief Returns YES if there'll never be anything else to read, as when a network

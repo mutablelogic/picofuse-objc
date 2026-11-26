@@ -27,24 +27,25 @@ static void reading(NXStream *stream, size_t length) {
   test_assert(memcmp(bytes, "helx", 4) == 0 && [stream position] == 3);
 
   // The position
-  test_assert([stream setPosition:1] && [stream peek] == 'e');
-  test_assert([stream movePosition:2] && [stream peek] == 'l');
-  test_assert([stream movePosition:-3] && [stream peek] == 'h');
-  test_assert(![stream movePosition:-1] && [stream position] == 0);
-  test_assert(![stream setPosition:length + 1] && [stream position] == 0);
-  test_assert(![stream setPosition:SIZE_MAX]);
-  test_assert([stream setPosition:length] && [stream position] == length);
-  test_assert(![stream movePosition:1]);
+  test_assert([stream seek:1 relative:NO] && [stream peek] == 'e');
+  test_assert([stream seek:2 relative:YES] && [stream peek] == 'l');
+  test_assert([stream seek:-3 relative:YES] && [stream peek] == 'h');
+  test_assert(![stream seek:-1 relative:YES] && [stream position] == 0);
+  test_assert(![stream seek:length + 1 relative:NO] && [stream position] == 0);
+  test_assert(![stream seek:PTRDIFF_MAX relative:NO]);
+  test_assert(![stream seek:-1 relative:NO] && [stream position] == 0);
+  test_assert([stream seek:length relative:NO] && [stream position] == length);
+  test_assert(![stream seek:1 relative:YES]);
 
   // The end
   test_assert([stream peek] == NXStreamEnd && ![stream isEnded]);
   test_assert([stream readBytes:bytes length:4] == 0);
   test_assert([stream readStringWithLength:4] == nil);
-  test_assert([stream setPosition:length - 2]);
+  test_assert([stream seek:length - 2 relative:NO]);
   test_assert([stream readBytes:bytes length:8] == 2);
 
   // As a string
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([stream readStringWithLength:0] == nil);
   test_assert([[stream readStringWithLength:5] isEqual:@"hello"]);
   test_assert([[stream readStringWithLength:1] isEqual:@" "]);
@@ -75,7 +76,7 @@ static void streams(NXZone *zone) {
   }
   stream = [NXStream streamWithString:mutable];
   reading(stream, 506);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([[stream readStringWithLength:1000] isEqual:mutable]);
 
   // It's not affected by the string being changed, or released
@@ -100,27 +101,27 @@ static void streams(NXZone *zone) {
   test_assert([stream writeString:@"hello "] == 6);
   test_assert([stream writeBytes:"world!!" length:5] == 5);
   test_assert([stream peek] == NXStreamEnd && [stream position] == 11);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:0 relative:NO]);
   reading(stream, 11);
 
   // It's only written as far as there's room
-  test_assert([stream setPosition:11]);
+  test_assert([stream seek:11 relative:NO]);
   test_assert([stream writeString:@"0123456789"] == 9);
   test_assert([stream writeString:@"x"] == 0);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([[stream readStringWithLength:99]
       isEqual:@"hello world012345678"]);
-  test_assert([stream setPosition:6] && [stream writeString:@"W"] == 1);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:6 relative:NO] && [stream writeString:@"W"] == 1);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([[stream readStringWithLength:11] isEqual:@"hello World"]);
 
   // Bytes which aren't a string
   drain();
   stream = [NXStream streamWithCapacity:4];
   test_assert([stream writeBytes:"a\0\xFF" "b" length:4] == 4);
-  test_assert([stream setPosition:1] && [stream peek] == 0);
-  test_assert([stream setPosition:2] && [stream peek] == 0xFF);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:1 relative:NO] && [stream peek] == 0);
+  test_assert([stream seek:2 relative:NO] && [stream peek] == 0xFF);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([[stream readStringWithLength:4] isEqual:@"a"]);
   test_assert([stream position] == 4);
   stream = [NXStream streamWithCapacity:0];
@@ -145,7 +146,7 @@ static void streams(NXZone *zone) {
   test_assert([stream readBytes:&byte length:1] == 0);
   test_assert([stream readStringWithLength:1] == nil);
   test_assert([stream writeString:@"x"] == 0);
-  test_assert(![stream setPosition:0] && ![stream movePosition:0]);
+  test_assert(![stream seek:0 relative:NO] && ![stream seek:0 relative:YES]);
 
   // A zero byte ends a string, even after more than is read at a time
   drain();
@@ -155,7 +156,7 @@ static void streams(NXZone *zone) {
     test_assert([stream writeString:@"-"] == 1);
   }
   test_assert([stream writeString:@"tail"] == 4);
-  test_assert([stream setPosition:0]);
+  test_assert([stream seek:0 relative:NO]);
   test_assert([[stream readStringWithLength:200] isEqual:@"a"]);
 
   // One which isn't initialized with anything is closed
@@ -164,7 +165,7 @@ static void streams(NXZone *zone) {
   test_assert([stream peek] == NXStreamEnd);
   test_assert([stream readBytes:&byte length:1] == 0);
   test_assert([stream readStringWithLength:1] == nil);
-  test_assert(![stream movePosition:0] && [stream position] == NXNotFound);
+  test_assert(![stream seek:0 relative:YES] && [stream position] == NXNotFound);
 
   // Those which cannot be made
   test_assert([NXStream streamWithString:nil] == nil);
@@ -203,7 +204,7 @@ test_main(0) {
   test_assert(pipe(fds) == 0 && dup2(fds[0], 0) == 0);
   NXStream *input = [NXStream standardInput];
   test_assert(input != nil && [input position] == NXNotFound);
-  test_assert(![input setPosition:0] && ![input movePosition:1]);
+  test_assert(![input seek:0 relative:NO] && ![input seek:1 relative:YES]);
   test_assert(write(fds[1], "abc", 3) == 3);
   test_assert([input peek] == 'a' && [input peek] == 'a');
   char bytes[4];
@@ -226,7 +227,7 @@ test_main(0) {
   [input close];
   test_assert([input peek] == NXStreamEnd);
   test_assert([other readBytes:bytes length:1] == 1 && bytes[0] == 'i');
-  test_assert(![other movePosition:-1]);
+  test_assert(![other seek:-1 relative:YES]);
   test_assert([other readBytes:bytes length:4] == 1 && bytes[0] == 'j');
   input = other;
 
