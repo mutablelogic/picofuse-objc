@@ -12,6 +12,7 @@
 #if __OBJC__
 
 // Forward Declaration of classes
+@class NXArray;
 @class NXAutoreleasePool;
 @class NXDate;
 @class NXMutableString;
@@ -30,6 +31,9 @@
 #include "NXHashAlgorithm.h"
 #include "NXNotFound.h"
 
+// Protocols
+#include "NXCollection.h"
+
 // Class Definitions
 #include "NXObject.h"
 #include "NXAutoreleasePool.h"
@@ -39,6 +43,7 @@
 #include "NXConstantString.h"
 #include "NXDate.h"
 #include "NXMutableString.h"
+#include "NXArray.h"
 #include "NXStream.h"
 #include "NXScanner.h"
 #include "NXThread.h"
