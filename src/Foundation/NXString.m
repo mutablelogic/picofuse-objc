@@ -1,3 +1,4 @@
+#include "NXObject+Private.h"
 #include "NXString+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
@@ -72,6 +73,11 @@ void NXStringBufferRelease(void) {
 + (id)allocWithZone:(NXZone *)zone {
   return self == [NXString class] ? [NXHeapString allocWithZone:zone]
                                   : [super allocWithZone:zone];
+}
+
++ (id)allocInZone:(NXZone *)zone {
+  return self == [NXString class] ? [NXHeapString allocInZone:zone]
+                                  : [super allocInZone:zone];
 }
 
 + (id)string {

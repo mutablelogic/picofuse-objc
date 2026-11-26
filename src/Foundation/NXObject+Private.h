@@ -52,3 +52,14 @@ static inline id NXObjectCreate(void *memory, Class cls, NXZone *zone) {
   object_setClass(object, cls);
   return object;
 }
+
+@interface NXObject (Private)
+
+/*
+ * Allocates an instance in a zone, or not in a zone if it's nil, which unlike
+ * allocWithZone: doesn't use the default zone. For copies, which are made where their
+ * originals are.
+ */
++ (id)allocInZone:(NXZone *)zone;
+
+@end

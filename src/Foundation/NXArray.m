@@ -197,7 +197,7 @@
 }
 
 - (id)copy {
-  NXArray *copy = [[NXArray allocWithZone:[self zone]] initWithCapacity:_count];
+  NXArray *copy = [[NXArray allocInZone:[self zone]] initWithCapacity:_count];
   for (size_t i = 0; copy != nil && i < _count; i++) {
     if (![copy appendObject:_objects[i]]) {
       [copy release];

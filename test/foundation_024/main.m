@@ -110,10 +110,24 @@ test_main(0) {
     [pool release];
   }
 
+  // Objects which aren't in a zone are copied out of one, even once there's a
+  // default zone
+  NXMutableString *outside = [[NXMutableString alloc] initWithCString:"outside"];
+  NXArray *outsideArray = [[NXArray alloc] initWithObjects:@"x", nil];
+  test_assert([outside zone] == nil && [outsideArray zone] == nil);
+
   NXZone *zone = [NXZone zoneWithSize:8192];
   NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
   copies(zone);
+  NXString *outsideCopy = [outside copy];
+  NXArray *outsideArrayCopy = [outsideArray copy];
+  test_assert([outsideCopy zone] == nil && [outsideArrayCopy zone] == nil);
+  test_assert([outsideCopy isEqual:outside] && [outsideArrayCopy isEqual:outsideArray]);
   [pool release];
   test_assert([zone count] == 0);
   [zone release];
+  [outsideCopy release];
+  [outsideArrayCopy release];
+  [outside release];
+  [outsideArray release];
 }
