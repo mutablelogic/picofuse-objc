@@ -18,6 +18,10 @@
 - (int *)peeked;
 @end
 
+@interface NXStream (Hash)
+- (BOOL)hashPeeked:(sys_hash_t *)hash;
+@end
+
 // A byte of the standard input which has been peeked at, shared by all its streams
 static int stdin_peeked = NXStreamEnd;
 
@@ -32,6 +36,10 @@ static int stdin_peeked = NXStreamEnd;
 
 + (id)streamWithCapacity:(size_t)capacity {
   return [[[self alloc] initWithCapacity:capacity] autorelease];
+}
+
++ (id)streamWithBytes:(const void *)bytes length:(size_t)length {
+  return [[[self alloc] initWithBytes:bytes length:length] autorelease];
 }
 
 + (NXStream *)standardInput {
@@ -72,6 +80,23 @@ static int stdin_peeked = NXStreamEnd;
     _buffer = buffer;
   } else if (buffer != NULL) {
     NXZoneFree(zone, buffer);
+  }
+  return self;
+}
+
+- (id)initWithBytes:(const void *)bytes length:(size_t)length {
+  if (bytes == NULL && length > 0) {
+    [self release];
+    return nil;
+  }
+  self = [self initWithCapacity:length];
+  if (self == nil) {
+    return nil;
+  }
+  if (sys_iostream_write(_stream, bytes, length) != length ||
+      sys_iostream_seek(_stream, 0, true) != 0) {
+    [self release];
+    return nil;
   }
   return self;
 }
@@ -203,6 +228,48 @@ static int stdin_peeked = NXStreamEnd;
   return [self writeBytes:[string cStr] length:[string length]];
 }
 
+- (NXString *)hashWithAlgorithm:(NXHashAlgorithm)algorithm {
+  uint8_t bytes[NXHashMaxSize];
+  size_t size = [self hashWithAlgorithm:algorithm bytes:bytes];
+  if (size == 0) {
+    return nil;
+  }
+  char hex[2 * NXHashMaxSize + 1];
+  for (size_t i = 0; i < size; i++) {
+    hex[2 * i] = "0123456789abcdef"[bytes[i] >> 4];
+    hex[2 * i + 1] = "0123456789abcdef"[bytes[i] & 0x0F];
+  }
+  hex[2 * size] = '\0';
+  return [NXString stringWithCString:hex];
+}
+
+- (size_t)hashWithAlgorithm:(NXHashAlgorithm)algorithm bytes:(void *)bytes {
+  if (_stream == NULL) {
+    return 0;
+  }
+  size_t size = 0;
+
+#if SYS_HASH_CAPACITY == 1
+  // There can only be one at a time, so wait until no other thread has it
+  @synchronized([NXStream class]) {
+#endif
+    sys_hash_t *hash = sys_hash_init((sys_hash_algorithm_t)algorithm);
+    if (hash != NULL) {
+      if ([self hashPeeked:hash] && sys_hash_update(hash, _stream, 0)) {
+        const uint8_t *digest = sys_hash_finalize(hash);
+        if (digest != NULL) {
+          size = sys_hash_size(hash);
+          memcpy(bytes, digest, size);
+        }
+      }
+      sys_hash_deinit(hash);
+    }
+#if SYS_HASH_CAPACITY == 1
+  }
+#endif
+  return size;
+}
+
 - (void)close {
   // What's been peeked at in the standard input is kept, unless it's closed
   if (_owned || _stream != sys_stdin) {
@@ -228,6 +295,30 @@ static int stdin_peeked = NXStreamEnd;
 // Where a byte which has been peeked at is kept
 - (int *)peeked {
   return _stream != NULL && _stream == sys_stdin ? &stdin_peeked : &_peeked;
+}
+
+@end
+
+@implementation NXStream (Hash)
+
+// Hash a byte which has been peeked at but not read, if there is one, and return YES if
+// successful. Only what's in a stream can be hashed.
+- (BOOL)hashPeeked:(sys_hash_t *)hash {
+  int *peeked = [self peeked];
+  if (*peeked == NXStreamEnd) {
+    return YES;
+  }
+  char byte = (char)*peeked;
+  char buffer[2];
+  sys_iostream_t *stream = sys_string_open(buffer, sizeof(buffer));
+  BOOL hashed = stream != NULL && sys_iostream_write(stream, &byte, 1) == 1 &&
+                sys_iostream_seek(stream, 0, true) == 0 &&
+                sys_hash_update(hash, stream, 1);
+  sys_iostream_close(stream);
+  if (hashed) {
+    *peeked = NXStreamEnd;
+  }
+  return hashed;
 }
 
 @end

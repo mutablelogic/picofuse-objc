@@ -3,6 +3,7 @@
  * @brief Defines the NXStream class, for streams of bytes.
  */
 #pragma once
+#include "NXHashAlgorithm.h"
 #include <picofuse/sys.h>
 #include <stddef.h>
 
@@ -54,6 +55,14 @@
 + (id)streamWithCapacity:(size_t)capacity;
 
 /**
+ * @brief Returns a stream which reads and writes a copy of some bytes, from the start.
+ * @param bytes The bytes, which can include zero, or NULL if the length is zero.
+ * @param length The number of bytes, which is also the most that can be written.
+ * @return The stream, or nil if too many are open or there isn't enough memory.
+ */
++ (id)streamWithBytes:(const void *)bytes length:(size_t)length;
+
+/**
  * @brief Returns a stream for the standard input, or nil if there isn't one.
  */
 + (NXStream *)standardInput;
@@ -73,6 +82,11 @@
  * @brief Initializes a stream which reads and writes memory, and starts empty.
  */
 - (id)initWithCapacity:(size_t)capacity;
+
+/**
+ * @brief Initializes a stream which reads and writes a copy of some bytes, from the start.
+ */
+- (id)initWithBytes:(const void *)bytes length:(size_t)length;
 
 /**
  * @brief Initializes a stream with one from picofuse, which is closed when this is, or if
@@ -115,6 +129,24 @@
  * @return The number of bytes written, which may be fewer than its length.
  */
 - (size_t)writeString:(NXString *)string;
+
+/**
+ * @brief Reads the rest of the stream, and returns a hash of it.
+ * @return The hash, in lowercase hexadecimal, or nil if it isn't available or there isn't
+ * enough memory.
+ *
+ * This reads until there's nothing else to read at present. If the stream has a position,
+ * it's then at the end.
+ */
+- (NXString *)hashWithAlgorithm:(NXHashAlgorithm)algorithm;
+
+/**
+ * @brief Reads the rest of the stream, and returns a hash of it, as bytes.
+ * @param algorithm The algorithm.
+ * @param bytes Where to put the hash, which can be up to NXHashMaxSize bytes.
+ * @return The size of the hash, or zero if it isn't available.
+ */
+- (size_t)hashWithAlgorithm:(NXHashAlgorithm)algorithm bytes:(void *)bytes;
 
 /**
  * @brief Returns the position from the start, or NXNotFound if the stream doesn't have
