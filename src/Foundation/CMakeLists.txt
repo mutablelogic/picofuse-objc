@@ -4,6 +4,7 @@ add_library(${NAME} STATIC
     NXArray.m
     NXAutoreleasePool.m
     NXConstantString.m
+    NXData.m
     NXDate.m
     NXDuration.m
     NXLog.m
