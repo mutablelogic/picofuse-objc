@@ -12,6 +12,7 @@ add_library(${NAME} STATIC
     NXNumberInteger.m
     NXNumberStatic.m
     NXObject.m
+    NXScanner.m
     NXStream.m
     NXString.m
     NXThread.m
