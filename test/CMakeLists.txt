@@ -357,3 +357,10 @@ objc_test(foundation_024
     foundation_024/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Logging.
+objc_test(foundation_026
+    foundation_026/main.m
+    foundation_026/release.m
+    LIBRARIES picofuse-objc-foundation
+)
