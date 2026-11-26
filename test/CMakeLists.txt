@@ -345,3 +345,9 @@ objc_test(foundation_022
     foundation_022/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Arrays.
+objc_test(foundation_023
+    foundation_023/main.m
+    LIBRARIES picofuse-objc-foundation
+)
