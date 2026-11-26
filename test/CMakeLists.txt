@@ -333,3 +333,9 @@ objc_test(foundation_020
     foundation_020/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Numbers and strings from strings.
+objc_test(foundation_021
+    foundation_021/main.m
+    LIBRARIES picofuse-objc-foundation
+)

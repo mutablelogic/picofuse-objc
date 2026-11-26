@@ -70,6 +70,28 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
   return [NXNumberZero zeroValue];
 }
 
++ (NXNumber *)numberWithString:(NXString *)string {
+  const char *cStr = [string cStr];
+  size_t length = [string length];
+  if (length == 0) {
+    return nil;
+  }
+  bool boolean;
+  int64_t signed_value;
+  uint64_t unsigned_value;
+  double float_value;
+  if (sys_string_parse_bool(cStr, &boolean)) {
+    return [self numberWithBool:boolean];
+  } else if (sys_string_parse_int64(cStr, length, &signed_value)) {
+    return [self numberWithInt64:signed_value];
+  } else if (sys_string_parse_uint64(cStr, length, &unsigned_value)) {
+    return [self numberWithUnsignedInt64:unsigned_value];
+  } else if (sys_string_parse_float64(cStr, length, &float_value)) {
+    return [self numberWithFloat64:float_value];
+  }
+  return nil;
+}
+
 + (NXNumber *)numberWithBool:(BOOL)value {
   return value ? [NXNumberBool trueValue] : [NXNumberBool falseValue];
 }
