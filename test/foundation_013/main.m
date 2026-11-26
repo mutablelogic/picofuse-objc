@@ -147,7 +147,7 @@ static void strings(NXZone *zone) {
   test_assert([[NXString stringWithFormat:@"%t, %t and %d",
                                           NXMinute + 5 * NXSecond,
                                           (NXDuration)0, 6]
-      isEqual:@"1m 5s, 0s and 6"]);
+      isEqual:@"1m5s, 0s and 6"]);
 
   // What's documented
   string = [NXString stringWithFormat:@"%b %o %X %#x %05d %+d|%-4s|%4s|%.3f %zu",
