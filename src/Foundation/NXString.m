@@ -82,6 +82,10 @@ void NXStringBufferRelease(void) {
   return [[[self alloc] initWithString:other] autorelease];
 }
 
++ (id)stringWithQuotedString:(NXString *)quoted {
+  return [[[self alloc] initWithQuotedString:quoted] autorelease];
+}
+
 + (id)stringWithCString:(const char *)cStr {
   return [[[self alloc] initWithCString:cStr] autorelease];
 }
@@ -112,6 +116,32 @@ void NXStringBufferRelease(void) {
 
 - (id)initWithString:(NXString *)other {
   return [self initWithBytes:[other cStr] length:[other length]];
+}
+
+- (id)initWithQuotedString:(NXString *)quoted {
+  self = [super init];
+  const char *cStr = [quoted cStr];
+  size_t length = [quoted length];
+
+  // Check it's valid, without writing anything
+  if (self == nil || length < 2 || sys_string_parse_quoted(cStr, length, NULL, 0) < 0) {
+    [self release];
+    return nil;
+  }
+
+  // Decoding never makes it longer than what's between the quotes
+  if (length > 2) {
+    char *data = [self allocateLength:length - 2];
+    if (data == NULL) {
+      [self release];
+      return nil;
+    }
+    ptrdiff_t decoded = sys_string_parse_quoted(cStr, length, data, length - 2);
+
+    // A string stops at a zero
+    [self shortenLength:strnlen(data, (size_t)decoded)];
+  }
+  return self;
 }
 
 - (id)initWithCString:(const char *)cStr {

@@ -109,6 +109,20 @@ uint64_t NXRandUnsignedInt64(void);
 + (NXNumber *)numberWithFloat64:(double)value;
 
 /**
+ * @brief Returns a number from a string, or nil if it isn't one.
+ * @param string The whole of it is one of:
+ * - "true" or "false", which are booleans
+ * - an integer, with or without a sign, such as "42" or "-7", or in hex ("0x1F"), binary
+ *   ("0b101") or octal ("0o17", or "017" with a leading zero)
+ * - a float, such as "3.14", ".5", "1e10" or "-1.5e-3", or "NaN", "Inf" or "-Inf"
+ *
+ * Nothing else is allowed, such as spaces or a zero byte. An integer is signed if it fits
+ * in an int64_t, else unsigned if it fits in a uint64_t, else a float, which may not be
+ * exact. One in hex, binary or octal which doesn't fit is nil.
+ */
++ (NXNumber *)numberWithString:(NXString *)string;
+
+/**
  * @brief Returns a number for a random 32-bit signed integer.
  */
 + (NXNumber *)randomInt32;
