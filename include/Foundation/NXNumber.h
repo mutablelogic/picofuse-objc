@@ -116,8 +116,9 @@ uint64_t NXRandUnsignedInt64(void);
  *   ("0b101") or octal ("0o17", or "017" with a leading zero)
  * - a float, such as "3.14", ".5", "1e10" or "-1.5e-3", or "NaN", "Inf" or "-Inf"
  *
- * Nothing else is allowed, such as spaces. An integer is signed if it fits in an int64_t,
- * else unsigned if it fits in a uint64_t, else a float, which may not be exact.
+ * Nothing else is allowed, such as spaces or a zero byte. An integer is signed if it fits
+ * in an int64_t, else unsigned if it fits in a uint64_t, else a float, which may not be
+ * exact. One in hex, binary or octal which doesn't fit is nil.
  */
 + (NXNumber *)numberWithString:(NXString *)string;
 

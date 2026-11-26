@@ -19,8 +19,8 @@ typedef enum {
                                                  ///< an offset such as "+01:00"
   NXDateFormatRFC2822 = sys_date_format_rfc2822, ///< "Sun, 06 Sep 2026 11:37:05 GMT",
                                                  ///< as in HTTP, always in UTC
-  NXDateFormatLog = sys_date_format_log,         ///< "2026-09-06 11:37:05", in the
-                                                 ///< date's time zone
+  NXDateFormatLog = sys_date_format_log,         ///< "2026-09-06 11:37:05", always
+                                                 ///< in UTC
 } NXDateFormat;
 
 /**
