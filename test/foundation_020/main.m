@@ -77,6 +77,13 @@ static void dates(NXZone *zone) {
   check([date dateWithTimeZoneOffset:-(5 * 3600 + 30 * 60)], NXDateFormatISO8601,
         "2026-09-06T06:07:05-05:30");
 
+  // The largest offsets can be written
+  date = [NXDate dateWithSeconds:0 nanoseconds:0];
+  check([date dateWithTimeZoneOffset:INT32_MIN], NXDateFormatISO8601,
+        "1901-12-13T20:45:52-596523:14");
+  check([date dateWithTimeZoneOffset:INT32_MAX], NXDateFormatISO8601,
+        "2038-01-19T03:14:07+596523:14");
+
   // The local day can be another
   date = [[NXDate dateWithYear:2026 month:1 day:1 hours:0 minutes:30 seconds:0]
       dateWithTimeZoneOffset:-3600];
@@ -105,6 +112,12 @@ static void dates(NXZone *zone) {
   NXDate *last = [NXDate dateWithYear:9999 month:12 day:31];
   test_assert([last durationSinceDate:first] == INT64_MAX);
   test_assert([first durationSinceDate:last] == INT64_MIN);
+
+  // The longest which fit, where the nanoseconds take it back into range
+  NXDate *fraction = [NXDate dateWithSeconds:0 nanoseconds:999999999];
+  NXDate *far = [NXDate dateWithSeconds:9223372037 nanoseconds:0];
+  test_assert([far durationSinceDate:fraction] == INT64_C(9223372036000000001));
+  test_assert([fraction durationSinceDate:far] == -INT64_C(9223372036000000001));
 
   // Comparing
   test_assert([earlier compare:date] == NXComparisonAscending);
