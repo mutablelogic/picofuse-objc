@@ -69,9 +69,10 @@ typedef enum {
  * the stream's position, and after each token the stream is just after it, so the stream
  * can be read between tokens, and the scanner carries on from wherever it is.
  *
- * A string which isn't closed by its quote runs to the end, so check the token ends with
- * the quote. The stream shouldn't have a zero byte, which picofuse doesn't scan
- * correctly.
+ * A string which isn't closed by its quote runs to the end. It's only closed if it's at
+ * least two bytes, ends with the quote it starts with, and that quote doesn't have an odd
+ * number of backslashes before it, which would escape it. The stream shouldn't have a zero
+ * byte, which picofuse doesn't scan correctly.
  *
  * Example:
  * @code
