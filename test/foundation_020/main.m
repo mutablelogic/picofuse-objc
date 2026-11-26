@@ -67,7 +67,7 @@ static void dates(NXZone *zone) {
   NXDate *local = [date dateWithTimeZoneOffset:3600];
   test_assert([local zone] == zone && [local timeZoneOffset] == 3600);
   check(local, NXDateFormatISO8601, "2026-09-06T12:37:05+01:00");
-  check(local, NXDateFormatLog, "2026-09-06 12:37:05");
+  check(local, NXDateFormatLog, "2026-09-06 11:37:05");
   check(local, NXDateFormatRFC2822, "Sun, 06 Sep 2026 11:37:05 GMT");
   test_assert([local localHours:&hours minutes:&minutes seconds:&seconds]);
   test_assert(hours == 12 && minutes == 37 && seconds == 5);
