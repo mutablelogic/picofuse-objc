@@ -17,6 +17,7 @@
 @class NXNull;
 @class NXNumber;
 @class NXObject;
+@class NXStream;
 @class NXString;
 @class NXThread;
 @class NXZone;
@@ -24,6 +25,7 @@
 // Types
 #include "NXComparisonResult.h"
 #include "NXDuration.h"
+#include "NXHashAlgorithm.h"
 #include "NXNotFound.h"
 
 // Class Definitions
@@ -34,6 +36,7 @@
 #include "NXString.h"
 #include "NXConstantString.h"
 #include "NXMutableString.h"
+#include "NXStream.h"
 #include "NXThread.h"
 #include "NXZone.h"
 
