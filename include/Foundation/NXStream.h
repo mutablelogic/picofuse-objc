@@ -135,8 +135,9 @@
  * @return The hash, in lowercase hexadecimal, or nil if it isn't available or there isn't
  * enough memory.
  *
- * This reads until there's nothing else to read at present. If the stream has a position,
- * it's then at the end.
+ * This reads until a read returns nothing. Unlike readStringWithLength:, that means
+ * the standard input on Mac and Linux, or a pipe, is read until it's closed, which may
+ * never happen. If the stream has a position, it's then at the end.
  */
 - (NXString *)hashWithAlgorithm:(NXHashAlgorithm)algorithm;
 
