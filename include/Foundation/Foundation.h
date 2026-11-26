@@ -31,6 +31,7 @@
 #include "NXDuration.h"
 #include "NXHashAlgorithm.h"
 #include "NXNotFound.h"
+#include "NXLog.h"
 
 // Protocols
 #include "NXCollection.h"
