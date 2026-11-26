@@ -321,3 +321,9 @@ objc_test(foundation_018
     foundation_018/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Scanners.
+objc_test(foundation_019
+    foundation_019/main.m
+    LIBRARIES picofuse-objc-foundation
+)
