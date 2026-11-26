@@ -53,8 +53,8 @@
 - (BOOL)appendFormat:(NXString *)format, ...;
 
 /**
- * @brief Removes whitespace, such as spaces, tabs and line endings, from the start and
- * end.
+ * @brief Removes whitespace, such as spaces, tabs, line endings and no-break spaces, from
+ * the start and end.
  */
 - (void)trimWhitespace;
 
