@@ -82,6 +82,22 @@
 - (id)initWithString:(NXString *)other;
 
 /**
+ * @brief Returns a string from one in quotes, with its escapes decoded, or nil if it isn't
+ * one.
+ * @param quoted The whole of it is a string in ' or " quotes, such as a token from a
+ * scanner with NXScannerQuotes. The escapes are \\' \\" \\\\ \\/ \\b \\f \\n \\r \\t and \\uXXXX.
+ * @return The string, which stops at the first zero, from \\u0000, or nil if it isn't
+ * closed, has anything after the closing quote, has an escape which isn't known, or
+ * there isn't enough memory.
+ */
++ (id)stringWithQuotedString:(NXString *)quoted;
+
+/**
+ * @brief Initializes a string from one in quotes, with its escapes decoded.
+ */
+- (id)initWithQuotedString:(NXString *)quoted;
+
+/**
  * @brief Initializes a string with the contents of a null-terminated string, which is
  * empty if that's NULL.
  */

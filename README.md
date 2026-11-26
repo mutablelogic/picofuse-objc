@@ -1,6 +1,6 @@
 # picofuse-objc
 
-Objective-C Framework for Picofuse
+Objective-C Framework for Event-Driven Embedded System Development
 
 ## Building
 
