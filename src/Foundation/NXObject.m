@@ -84,6 +84,14 @@ static inline uint32_t release_count(NXObjectHeader *header) {
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+- (id)copy {
+  return [self retain];
+}
+
+- (uintptr_t)hash {
+  return (uintptr_t)self;
+}
+
 - (id)retain {
   sys_atomic_inc(&NXObjectGetHeader(self)->retain);
   return self;
@@ -117,6 +125,19 @@ static inline uint32_t release_count(NXObjectHeader *header) {
 
 + (NXString *)description {
   return [NXString stringWithCString:class_getName(self)];
+}
+
+@end
+
+@implementation NXObject (Private)
+
++ (id)allocInZone:(NXZone *)zone {
+  size_t size = NXObjectSize(self);
+  void *memory = zone == nil ? sys_calloc(1, size) : [zone allocWithSize:size];
+  if (zone != nil && memory != NULL) {
+    memset(memory, 0, size);
+  }
+  return memory == NULL ? nil : NXObjectCreate(memory, self, zone);
 }
 
 @end

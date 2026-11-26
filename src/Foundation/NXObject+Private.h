@@ -15,6 +15,20 @@ typedef struct {
 /*
  * Returns the header of an instance
  */
+/*
+ * Folds a 64-bit value into a hash, which is 32 bits on some systems
+ */
+static inline uintptr_t NXHashFold(uint64_t value) {
+  return (uintptr_t)(value ^ (value >> 32));
+}
+
+/*
+ * Combines a hash with another, for one made from several
+ */
+static inline uintptr_t NXHashCombine(uintptr_t hash, uintptr_t other) {
+  return hash * 31 + other;
+}
+
 static inline NXObjectHeader *NXObjectGetHeader(NXObject *object) {
   return (NXObjectHeader *)(void *)object - 1;
 }
@@ -38,3 +52,14 @@ static inline id NXObjectCreate(void *memory, Class cls, NXZone *zone) {
   object_setClass(object, cls);
   return object;
 }
+
+@interface NXObject (Private)
+
+/*
+ * Allocates an instance in a zone, or not in a zone if it's nil, which unlike
+ * allocWithZone: doesn't use the default zone. For copies, which are made where their
+ * originals are.
+ */
++ (id)allocInZone:(NXZone *)zone;
+
+@end

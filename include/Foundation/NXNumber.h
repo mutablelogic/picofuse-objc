@@ -212,6 +212,12 @@ uint64_t NXRandUnsignedInt64(void);
 - (BOOL)isEqual:(id)anObject;
 
 /**
+ * @brief Returns a hash of the value, which is the same for equal numbers, such as 1,
+ * 1.0 and true.
+ */
+- (uintptr_t)hash;
+
+/**
  * @brief Returns the value as a string, which is "true" or "false" for a boolean. A
  * floating point value is rounded, to six significant digits if it's 32-bit, or
  * otherwise nine.

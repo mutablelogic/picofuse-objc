@@ -1,3 +1,4 @@
+#include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
@@ -185,6 +186,25 @@
   while (_count > 0) {
     [self removeObjectAtIndex:_count - 1];
   }
+}
+
+- (uintptr_t)hash {
+  uintptr_t hash = _count;
+  for (size_t i = 0; i < _count; i++) {
+    hash = NXHashCombine(hash, [_objects[i] hash]);
+  }
+  return hash;
+}
+
+- (id)copy {
+  NXArray *copy = [[NXArray allocInZone:[self zone]] initWithCapacity:_count];
+  for (size_t i = 0; copy != nil && i < _count; i++) {
+    if (![copy appendObject:_objects[i]]) {
+      [copy release];
+      copy = nil;
+    }
+  }
+  return copy;
 }
 
 - (BOOL)isEqual:(id)anObject {

@@ -1,4 +1,5 @@
 #include "NXNumber+Private.h"
+#include "NXObject+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 #include <string.h>
@@ -247,6 +248,20 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
+
+- (uintptr_t)hash {
+  // Those which are integers, whatever their type, as they're equal
+  BOOL negative;
+  uint64_t magnitude;
+  if (exact_value(self, &negative, &magnitude)) {
+    uintptr_t hash = NXHashFold(magnitude);
+    return negative ? ~hash : hash;
+  }
+  double value = [self float64Value];
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof(bits));
+  return NXHashFold(bits);
+}
 
 - (BOOL)isEqual:(id)anObject {
   if (self == anObject) {
