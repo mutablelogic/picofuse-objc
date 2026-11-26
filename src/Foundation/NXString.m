@@ -229,6 +229,10 @@ void NXStringBufferRelease(void) {
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
+- (uintptr_t)hash {
+  return sys_hash_djb2([self cStr]);
+}
+
 - (BOOL)isEqual:(id)anObject {
   if (self == anObject) {
     return YES;

@@ -351,3 +351,9 @@ objc_test(foundation_023
     foundation_023/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Hashes and copies.
+objc_test(foundation_024
+    foundation_024/main.m
+    LIBRARIES picofuse-objc-foundation
+)

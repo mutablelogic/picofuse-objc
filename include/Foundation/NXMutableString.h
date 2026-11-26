@@ -33,6 +33,12 @@
 - (id)initWithCapacity:(size_t)capacity;
 
 /**
+ * @brief Returns a string, which can't be changed, with the same contents, or nil if
+ * there isn't enough memory. The caller owns it and has to release it.
+ */
+- (id)copy;
+
+/**
  * @brief Returns the length that the string can be before it needs more memory.
  */
 - (size_t)capacity;
