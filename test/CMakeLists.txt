@@ -315,3 +315,9 @@ objc_test(foundation_017
     foundation_017/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Hashes of streams.
+objc_test(foundation_018
+    foundation_018/main.m
+    LIBRARIES picofuse-objc-foundation
+)

@@ -127,6 +127,37 @@ static void streams(NXZone *zone) {
   stream = [NXStream streamWithCapacity:0];
   test_assert(stream != nil && [stream writeString:@"x"] == 0);
 
+  // A copy of some bytes, which can be read and written
+  drain();
+  char bytes[] = "hello world";
+  stream = [NXStream streamWithBytes:bytes length:11];
+  bytes[0] = 'j';
+  test_assert([stream zone] == zone);
+  reading(stream, 11);
+  test_assert([stream seek:6 relative:NO] && [stream writeString:@"there"] == 5);
+  test_assert([stream writeString:@"!"] == 0 && [stream position] == 11);
+  test_assert([stream seek:0 relative:NO]);
+  test_assert([[stream readStringWithLength:100] isEqual:@"hello there"]);
+  test_assert(memcmp(bytes, "jello world", 11) == 0);
+
+  // Including zeros
+  stream = [NXStream streamWithBytes:"a\0\xFF" "b" length:4];
+  test_assert([stream peek] == 'a' && [stream seek:1 relative:YES]);
+  test_assert([stream peek] == 0 && [stream seek:1 relative:YES]);
+  test_assert([stream peek] == 0xFF && [stream seek:1 relative:YES]);
+  test_assert([stream peek] == 'b' && [stream seek:1 relative:YES]);
+  test_assert([stream peek] == NXStreamEnd && [stream position] == 4);
+  test_assert([stream seek:0 relative:NO]);
+  test_assert([stream readBytes:bytes length:sizeof(bytes)] == 4);
+  test_assert(memcmp(bytes, "a\0\xFF" "b", 4) == 0);
+
+  // None
+  stream = [NXStream streamWithBytes:NULL length:0];
+  test_assert(stream != nil && [stream peek] == NXStreamEnd);
+  test_assert([stream position] == 0 && [stream writeString:@"x"] == 0);
+  stream = [NXStream streamWithBytes:"" length:0];
+  test_assert(stream != nil && [stream peek] == NXStreamEnd);
+
   // A stream from picofuse
   drain();
   stream = [[[NXStream alloc] initWithStream:sys_string_read("hello world")]
@@ -170,6 +201,8 @@ static void streams(NXZone *zone) {
   // Those which cannot be made
   test_assert([NXStream streamWithString:nil] == nil);
   test_assert([NXStream streamWithCapacity:SIZE_MAX] == nil);
+  test_assert([NXStream streamWithBytes:NULL length:1] == nil);
+  test_assert([NXStream streamWithBytes:"x" length:SIZE_MAX] == nil);
 }
 
 test_main(0) {

@@ -25,6 +25,7 @@
 // Types
 #include "NXComparisonResult.h"
 #include "NXDuration.h"
+#include "NXHashAlgorithm.h"
 #include "NXNotFound.h"
 
 // Class Definitions
