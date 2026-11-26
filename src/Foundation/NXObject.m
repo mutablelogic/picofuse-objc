@@ -128,3 +128,16 @@ static inline uint32_t release_count(NXObjectHeader *header) {
 }
 
 @end
+
+@implementation NXObject (Private)
+
++ (id)allocInZone:(NXZone *)zone {
+  size_t size = NXObjectSize(self);
+  void *memory = zone == nil ? sys_calloc(1, size) : [zone allocWithSize:size];
+  if (zone != nil && memory != NULL) {
+    memset(memory, 0, size);
+  }
+  return memory == NULL ? nil : NXObjectCreate(memory, self, zone);
+}
+
+@end

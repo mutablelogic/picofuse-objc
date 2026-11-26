@@ -1,3 +1,4 @@
+#include "NXObject+Private.h"
 #include "NXString+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
@@ -34,7 +35,7 @@
 }
 
 - (id)copy {
-  return [[NXString allocWithZone:[self zone]] initWithString:self];
+  return [[NXString allocInZone:[self zone]] initWithString:self];
 }
 
 - (void)dealloc {
