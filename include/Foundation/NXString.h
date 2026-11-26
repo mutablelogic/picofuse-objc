@@ -109,10 +109,44 @@
 - (const char *)cStr;
 
 /**
+ * @brief Returns the number of runes, which are Unicode code points.
+ */
+- (size_t)runeCount;
+
+/**
  * @brief Returns YES if the other object is a string with the same contents, whatever
  * kind it is.
  */
 - (BOOL)isEqual:(id)anObject;
+
+/**
+ * @brief Compares the string with another, byte by byte. If that's nil, it's compared
+ * with an empty string.
+ */
+- (NXComparisonResult)compare:(NXString *)other;
+
+/**
+ * @brief Returns YES if the string starts with another, as it does with nil or an empty
+ * string.
+ */
+- (BOOL)hasPrefix:(NXString *)prefix;
+
+/**
+ * @brief Returns YES if the string ends with another, as it does with nil or an empty
+ * string.
+ */
+- (BOOL)hasSuffix:(NXString *)suffix;
+
+/**
+ * @brief Returns YES if the string has another in it, as it does nil or an empty string.
+ */
+- (BOOL)containsString:(NXString *)other;
+
+/**
+ * @brief Returns the index, in bytes, of the first place that another string is in this
+ * one, or NXNotFound. It's zero for nil or an empty string.
+ */
+- (size_t)indexOfSubstring:(NXString *)other;
 
 /**
  * @brief Returns the string itself.

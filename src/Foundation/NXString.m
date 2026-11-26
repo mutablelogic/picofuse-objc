@@ -188,6 +188,10 @@ void NXStringBufferRelease(void) {
   sys_panicf("-[%s cStr] isn't implemented", object_getClassName(self));
 }
 
+- (size_t)runeCount {
+  return sys_string_runes([self cStr]);
+}
+
 - (NXString *)description {
   return self;
 }
@@ -206,6 +210,30 @@ void NXStringBufferRelease(void) {
   size_t length = [self length];
   return [other length] == length &&
          memcmp([self cStr], [other cStr], length) == 0;
+}
+
+- (NXComparisonResult)compare:(NXString *)other {
+  ptrdiff_t result = sys_string_compare([self cStr], [other cStr]);
+  return result < 0   ? NXComparisonAscending
+         : result > 0 ? NXComparisonDescending
+                      : NXComparisonSame;
+}
+
+- (BOOL)hasPrefix:(NXString *)prefix {
+  return sys_string_hasprefix([self cStr], [prefix cStr]);
+}
+
+- (BOOL)hasSuffix:(NXString *)suffix {
+  return sys_string_hassuffix([self cStr], [suffix cStr]);
+}
+
+- (BOOL)containsString:(NXString *)other {
+  return [self indexOfSubstring:other] != NXNotFound;
+}
+
+- (size_t)indexOfSubstring:(NXString *)other {
+  ptrdiff_t offset = sys_string_contains([self cStr], [other cStr]);
+  return offset < 0 ? NXNotFound : (size_t)offset;
 }
 
 @end

@@ -22,7 +22,9 @@
 @class NXZone;
 
 // Types
+#include "NXComparisonResult.h"
 #include "NXDuration.h"
+#include "NXNotFound.h"
 
 // Class Definitions
 #include "NXObject.h"
