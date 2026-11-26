@@ -53,8 +53,31 @@
 - (BOOL)appendFormat:(NXString *)format, ...;
 
 /**
- * @brief Removes spaces, tabs and line endings from the start and end.
+ * @brief Removes whitespace, such as spaces, tabs, line endings and no-break spaces, from
+ * the start and end.
  */
 - (void)trimWhitespace;
+
+/**
+ * @brief Removes another string from the start, and returns YES, if this starts with it.
+ * Nothing is done, and it returns NO, if that's nil or empty.
+ */
+- (BOOL)trimPrefix:(NXString *)prefix;
+
+/**
+ * @brief Removes another string from the end, and returns YES, if this ends with it.
+ * Nothing is done, and it returns NO, if that's nil or empty.
+ */
+- (BOOL)trimSuffix:(NXString *)suffix;
+
+/**
+ * @brief Changes letters to uppercase, if they're in the Latin-1 character set.
+ */
+- (void)toUppercase;
+
+/**
+ * @brief Changes letters to lowercase, if they're in the Latin-1 character set.
+ */
+- (void)toLowercase;
 
 @end
