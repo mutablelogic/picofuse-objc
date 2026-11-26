@@ -13,6 +13,7 @@
 
 // Forward Declaration of classes
 @class NXAutoreleasePool;
+@class NXDate;
 @class NXMutableString;
 @class NXNull;
 @class NXNumber;
@@ -35,6 +36,7 @@
 #include "NXNumber.h"
 #include "NXString.h"
 #include "NXConstantString.h"
+#include "NXDate.h"
 #include "NXMutableString.h"
 #include "NXStream.h"
 #include "NXThread.h"
