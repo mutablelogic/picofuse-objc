@@ -76,6 +76,26 @@
 - (id)autorelease;
 
 /**
+ * @brief Returns a copy which can't be changed by anything else, which the caller owns
+ * and has to release.
+ *
+ * An object which can't be changed returns itself, retained, which is what this does
+ * unless it's overridden. One which can, such as an NXMutableString or NXArray, returns a
+ * new object with the same contents, in the same zone.
+ */
+- (id)copy;
+
+/**
+ * @brief Returns a number for the object, which is the same for objects which are equal
+ * by isEqual:.
+ *
+ * Unless it's overridden, that's the address of the object, as objects are only equal to
+ * themselves. An object mustn't change while something depends on its hash, such as
+ * while it's a key in a map.
+ */
+- (uintptr_t)hash;
+
+/**
  * @brief Returns a string which describes the instance, for logging. Unless it's
  * overridden, that's the name of its class.
  */

@@ -188,6 +188,12 @@ typedef enum {
 - (BOOL)isEqual:(id)anObject;
 
 /**
+ * @brief Returns a hash of the moment, which is the same for equal dates, whatever their
+ * time zones.
+ */
+- (uintptr_t)hash;
+
+/**
  * @brief Gets the date in UTC. Any of the arguments can be NULL.
  * @param weekday The day of the week, from 0 for Sunday to 6.
  * @return YES if successful, or NO if the year isn't from 0 to 65535.

@@ -1,3 +1,4 @@
+#include "NXObject+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 #include <string.h>
@@ -161,6 +162,11 @@
                                                          : NXComparisonDescending;
   }
   return NXComparisonSame;
+}
+
+- (uintptr_t)hash {
+  return NXHashCombine(NXHashFold((uint64_t)_date.seconds),
+                       (uintptr_t)_date.nanoseconds);
 }
 
 - (BOOL)isEqual:(id)anObject {
