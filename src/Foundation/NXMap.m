@@ -1,3 +1,4 @@
+#include "NXFastEnumeration+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
@@ -132,6 +133,7 @@ static size_t capacity_for(size_t count) {
   entries[i].key = copy;
   entries[i].object = [object retain];
   _count++;
+  _mutations++;
   return YES;
 }
 
@@ -176,6 +178,26 @@ static size_t capacity_for(size_t count) {
     }
   }
   return objects;
+}
+
+// Copies the keys into objects a batch at a time, from the slot after the last batch's,
+// which is kept in the state. The keys move if the table changes, so changes are
+// counted.
+- (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
+                                     objects:(id *)objects
+                                       count:(unsigned long)count {
+  entry_t *entries = _entries;
+  size_t i = (size_t)state->state;
+  unsigned long n = 0;
+  for (; i < _capacity && n < count; i++) {
+    if (entries[i].key != nil) {
+      objects[n++] = entries[i].key;
+    }
+  }
+  state->state = (unsigned long)i;
+  state->itemsPtr = objects;
+  state->mutationsPtr = &_mutations;
+  return n;
 }
 
 - (BOOL)isEqual:(id)anObject {
@@ -276,6 +298,7 @@ static size_t capacity_for(size_t count) {
   _entries = entries;
   _capacity = capacity;
   _shift = shift;
+  _mutations++; // the keys have moved
   return YES;
 }
 
@@ -299,6 +322,7 @@ static size_t capacity_for(size_t count) {
   entries[hole].key = nil;
   entries[hole].object = nil;
   _count--;
+  _mutations++;
   [removed.key release];
   [removed.object release];
 }

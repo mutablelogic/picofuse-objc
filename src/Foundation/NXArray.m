@@ -1,3 +1,4 @@
+#include "NXFastEnumeration+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
@@ -131,6 +132,7 @@
   memmove(&_objects[index + 1], &_objects[index], (_count - index) * sizeof(id));
   _objects[index] = [object retain];
   _count++;
+  _mutations++;
   return YES;
 }
 
@@ -155,6 +157,7 @@
   // Released once it's out of the array, in case its dealloc uses the array
   id object = _objects[index];
   _count--;
+  _mutations++;
   memmove(&_objects[index], &_objects[index + 1], (_count - index) * sizeof(id));
   [object release];
   return YES;
@@ -205,6 +208,22 @@
     }
   }
   return copy;
+}
+
+// The objects are one after another, so they're given to the loop as they are, in one
+// batch. They move if objects are added or removed, so those are counted.
+- (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
+                                     objects:(id *)objects
+                                       count:(unsigned long)count {
+  (void)objects;
+  (void)count;
+  state->mutationsPtr = &_mutations;
+  if (state->state != 0) {
+    return 0;
+  }
+  state->state = 1;
+  state->itemsPtr = _objects;
+  return (unsigned long)_count;
 }
 
 - (BOOL)isEqual:(id)anObject {
