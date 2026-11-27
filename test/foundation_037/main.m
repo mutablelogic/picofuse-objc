@@ -161,18 +161,18 @@ test_main(0) {
 
   // The bytes: a header, then the hash of the class and the values, little-endian
   {
-    static const uint8_t string[] = {'N', 'X', 'A', 1, 0x4e, 0x8a, 0x3f, 0xd4, 2, 'h', 'i'};
+    static const uint8_t string[] = {'P', 'F', 1, 0x4e, 0x8a, 0x3f, 0xd4, 2, 'h', 'i'};
     expect_bytes(@"hi", string, sizeof(string));
-    static const uint8_t number[] = {'N', 'X', 'A', 1, 0xaa, 0xf3, 0x10, 0x90, 1,
+    static const uint8_t number[] = {'P', 'F', 1, 0xaa, 0xf3, 0x10, 0x90, 1,
                                      0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     expect_bytes([NXNumber numberWithInt64:-2], number, sizeof(number));
     Point *p = [[[Point alloc] init] autorelease];
     p->x = 1;
     p->y = 0x01020304;
-    static const uint8_t point[] = {'N', 'X', 'A', 1, 0x31, 0xef, 0xa8, 0xea,
+    static const uint8_t point[] = {'P', 'F', 1, 0x31, 0xef, 0xa8, 0xea,
                                     1, 0, 0, 0, 4, 3, 2, 1};
     expect_bytes(p, point, sizeof(point));
-    static const uint8_t nothing[] = {'N', 'X', 'A', 1, 0, 0, 0, 0};
+    static const uint8_t nothing[] = {'P', 'F', 1, 0, 0, 0, 0};
     expect_bytes(nil, nothing, sizeof(nothing));
   }
 
@@ -226,7 +226,7 @@ test_main(0) {
   test_assert(unbinary([Everything class], truncated, 0, SIZE_MAX, &failed) == nil && failed);
   test_assert(unbinary(Nil, [NXData dataWithBytes:"JSON" length:4], 0, SIZE_MAX, &failed) == nil &&
               failed);
-  test_assert(unbinary(Nil, [NXData dataWithBytes:"NXA\x01\x01\x02\x03\x04" length:8], 0,
+  test_assert(unbinary(Nil, [NXData dataWithBytes:"PF\x01\x01\x02\x03\x04" length:7], 0,
                        SIZE_MAX, &failed) == nil && failed);
   test_assert(unbinary(Nil, [NXData data], 0, SIZE_MAX, &failed) == nil && failed);
 
@@ -234,7 +234,7 @@ test_main(0) {
   test_assert(unbinary([Everything class], data, 1, SIZE_MAX, &failed) == nil && failed);
   test_assert(unbinary([Everything class], data, 0, 3, &failed) == nil && failed);
   test_assert(unbinary([Everything class], data, 3, 5, &failed) != nil && !failed);
-  static const uint8_t huge[] = {'N', 'X', 'A', 1, 0x4e, 0x8a, 0x3f, 0xd4,
+  static const uint8_t huge[] = {'P', 'F', 1, 0x4e, 0x8a, 0x3f, 0xd4,
                                  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f};
   test_assert(unbinary(Nil, [NXData dataWithBytes:huge length:sizeof(huge)], 0, 1000, &failed) ==
                   nil && failed);

@@ -33,7 +33,7 @@ static BOOL is_archiving(Class cls) {
 }
 
 // The binary header, of a magic number and a version
-static const char binary_header[4] = {'N', 'X', 'A', 1};
+static const char binary_header[3] = {'P', 'F', 1};
 
 // The 32-bit FNV-1a hash of a name, which is the same on every platform
 static uint32_t name_hash(const char *name) {
