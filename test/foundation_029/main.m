@@ -20,6 +20,11 @@ test_main(0) {
   for (id object in array) {
     [array removeObject:object];
   }
+#elif defined(CASE_array_sort)
+  for (id object in array) {
+    (void)object;
+    [array sortUsingSelector:@selector(compare:)];
+  }
 #elif defined(CASE_map_add)
   int64_t i = 100;
   for (id key in map) {

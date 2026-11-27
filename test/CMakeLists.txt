@@ -383,8 +383,8 @@ objc_test(foundation_028
     LIBRARIES picofuse-objc-foundation
 )
 
-# Adding or removing objects in a for...in loop panics.
-foreach(_case array_append array_remove map_add map_remove)
+# Adding, removing or sorting objects in a for...in loop panics.
+foreach(_case array_append array_remove array_sort map_add map_remove)
     objc_panic_test(foundation_029_${_case}
         "Collection changed while it was being enumerated"
         foundation_029/main.m
@@ -392,3 +392,9 @@ foreach(_case array_append array_remove map_add map_remove)
         LIBRARIES picofuse-objc-foundation
     )
 endforeach()
+
+# NXArray subarrays, joining and sorting, and comparing numbers.
+objc_test(foundation_030
+    foundation_030/main.m
+    LIBRARIES picofuse-objc-foundation
+)
