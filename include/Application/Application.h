@@ -13,9 +13,12 @@
 
 @class NXApplication;
 @class NXRunLoop;
+@class NXTimer;
 
 #include "NXEvent.h"
+#include "NXEventSource.h"
 #include "NXRunLoop.h"
 #include "NXApplication.h"
+#include "NXTimer.h"
 
 #endif

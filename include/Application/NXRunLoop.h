@@ -52,6 +52,8 @@
   size_t _capacity;         ///< How many events can wait
   id<NXRunLoopDelegate> _delegate; ///< Not retained
   sys_event_queue_t *_queue; ///< While it runs, or NULL
+  void *_handler;           ///< For the Application framework, or NULL
+  void *_poll;              ///< For the Application framework, or NULL
 }
 
 /**
