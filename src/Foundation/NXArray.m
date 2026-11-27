@@ -355,6 +355,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
     return NO;
   }
   NXArray *other = anObject;
+  NXReadCheck(&other->_changing, __func__);
   if (other->_count != _count) {
     return NO;
   }
