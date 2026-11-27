@@ -423,3 +423,42 @@ objc_panic_test(foundation_033_add "-.NXWaitGroup add:. can't add -1"
     DEFINITIONS CASE_add
     LIBRARIES picofuse-objc-foundation
 )
+
+# Arrays and maps used across threads in ways which aren't misuse.
+objc_test(foundation_034
+    foundation_034/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Arrays and maps changed by two threads at once, read while another thread changes
+# them, or changed in the middle of a change, panic.
+objc_panic_test(foundation_035_array_two_threads "-.NXArray insertObject:atIndex:. changed by two threads at once"
+    foundation_035/main.m
+    DEFINITIONS CASE_array_two_threads
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_array_read "-.NXArray count. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_array_read
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_array_nested "-.NXArray insertObject:atIndex:. changed while it was being changed"
+    foundation_035/main.m
+    DEFINITIONS CASE_array_nested
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_map_two_threads "-.NXMap setObject:forKey:. changed by two threads at once"
+    foundation_035/main.m
+    DEFINITIONS CASE_map_two_threads
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_map_read "-.NXMap objectForKey:. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_map_read
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_map_nested "-.NXMap removeObjectForKey:. changed while it was being changed"
+    foundation_035/main.m
+    DEFINITIONS CASE_map_nested
+    LIBRARIES picofuse-objc-foundation
+)
