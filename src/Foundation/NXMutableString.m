@@ -1,3 +1,4 @@
+#include "NXChange+Private.h"
 #include "NXObject+Private.h"
 #include "NXString+Private.h"
 #include "NXZone+Private.h"
@@ -9,7 +10,8 @@
 #define MIN_CAPACITY 15
 
 @interface NXMutableString (Private)
-- (BOOL)append:(const char *)bytes length:(size_t)length;
+- (BOOL)append:(const char *)bytes length:(size_t)length method:(const char *)method;
+- (BOOL)add:(const char *)bytes length:(size_t)length;
 @end
 
 @implementation NXMutableString
@@ -49,10 +51,12 @@
 // PROPERTIES
 
 - (size_t)length {
+  NXReadCheck(&_changing, __func__);
   return _length;
 }
 
 - (const char *)cStr {
+  NXReadCheck(&_changing, __func__);
   return _data == NULL ? "" : _data;
 }
 
@@ -64,11 +68,11 @@
 // PUBLIC METHODS
 
 - (BOOL)appendString:(NXString *)other {
-  return [self append:[other cStr] length:[other length]];
+  return [self append:[other cStr] length:[other length] method:__func__];
 }
 
 - (BOOL)appendCString:(const char *)cStr {
-  return [self append:cStr length:cStr == NULL ? 0 : strlen(cStr)];
+  return [self append:cStr length:cStr == NULL ? 0 : strlen(cStr) method:__func__];
 }
 
 - (BOOL)appendFormat:(NXString *)format, ... {
@@ -88,7 +92,7 @@
     length = NXStringFormat(formatted, NXSTRING_BUFFER_SIZE, format, args);
     fits = length < NXSTRING_BUFFER_SIZE;
     if (fits) {
-      appended = [self append:formatted length:length];
+      appended = [self append:formatted length:length method:__func__];
     }
     NXStringBufferRelease();
   }
@@ -99,7 +103,7 @@
     char *data = length == SIZE_MAX ? NULL : sys_malloc(length + 1);
     if (data != NULL) {
       size_t actual = NXStringFormat(data, length + 1, format, args);
-      appended = [self append:data length:actual < length ? actual : length];
+      appended = [self append:data length:actual < length ? actual : length method:__func__];
       sys_free(data);
     }
   }
@@ -108,30 +112,40 @@
 }
 
 - (void)trimWhitespace {
+  NXChangeBegin(&_changing, __func__);
   sys_string_trimspace(_data);
   _length = sys_string_bytes(_data);
+  NXChangeEnd(&_changing);
 }
 
 - (BOOL)trimPrefix:(NXString *)prefix {
+  NXChangeBegin(&_changing, __func__);
   size_t length = _length;
   sys_string_trimprefix(_data, [prefix cStr]);
   _length = sys_string_bytes(_data);
+  NXChangeEnd(&_changing);
   return _length != length;
 }
 
 - (BOOL)trimSuffix:(NXString *)suffix {
+  NXChangeBegin(&_changing, __func__);
   size_t length = _length;
   sys_string_trimsuffix(_data, [suffix cStr]);
   _length = sys_string_bytes(_data);
+  NXChangeEnd(&_changing);
   return _length != length;
 }
 
 - (void)toUppercase {
+  NXChangeBegin(&_changing, __func__);
   sys_string_to_upper(_data);
+  NXChangeEnd(&_changing);
 }
 
 - (void)toLowercase {
+  NXChangeBegin(&_changing, __func__);
   sys_string_to_lower(_data);
+  NXChangeEnd(&_changing);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,7 +173,15 @@
 
 @implementation NXMutableString (Private)
 
-- (BOOL)append:(const char *)bytes length:(size_t)length {
+// Appends bytes, which can be the string's own, as a change by a method
+- (BOOL)append:(const char *)bytes length:(size_t)length method:(const char *)method {
+  NXChangeBegin(&_changing, method);
+  BOOL appended = [self add:bytes length:length];
+  NXChangeEnd(&_changing);
+  return appended;
+}
+
+- (BOOL)add:(const char *)bytes length:(size_t)length {
   if (length > 0) {
     length = strnlen(bytes, length);
   }
