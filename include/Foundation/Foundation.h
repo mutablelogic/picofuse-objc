@@ -50,6 +50,7 @@
 #if __OBJC__
 
 // Forward Declaration of classes
+@class NXArchive;
 @class NXArray;
 @class NXAutoreleasePool;
 @class NXData;
@@ -91,6 +92,7 @@
 #include "NXData.h"
 #include "NXStream.h"
 #include "NXScanner.h"
+#include "NXArchive.h"
 #include "NXThread.h"
 #include "NXLock.h"
 #include "NXCondition.h"

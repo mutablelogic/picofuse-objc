@@ -497,3 +497,9 @@ objc_panic_test(foundation_035_data_read "-.NXData length. used while another th
     DEFINITIONS CASE_data_read
     LIBRARIES picofuse-objc-foundation
 )
+
+# Archiving objects as JSON.
+objc_test(foundation_036
+    foundation_036/main.m
+    LIBRARIES picofuse-objc-foundation
+)
