@@ -33,6 +33,10 @@
   sys_atomic_set(&_atomic, value);
 }
 
+- (BOOL)compareAndSwap:(uint32_t)expected with:(uint32_t)desired {
+  return sys_atomic_compare_swap(&_atomic, &expected, desired);
+}
+
 - (uint32_t)increment {
   return sys_atomic_inc(&_atomic);
 }
