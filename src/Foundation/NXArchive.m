@@ -3,6 +3,7 @@
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 #include <runtime/gcc/runtime.h>
+#include <float.h>
 #include <string.h>
 
 #define DEPTH_DEFAULT 32
@@ -224,7 +225,10 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 }
 
 - (BOOL)encodeObject:(id)object forKey:(NXString *)key {
-  if (_failure != nil || !_encoding) {
+  if (!_encoding) {
+    [self fail:@"it's a decoder"];
+  }
+  if (_failure != nil) {
     return NO;
   }
   if (object == nil || object == [NXNull nullValue]) {
@@ -383,7 +387,12 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 }
 
 - (float)decodeFloat32ForKey:(NXString *)key {
-  return (float)[self decodeFloat64ForKey:key];
+  double value = [self decodeFloat64ForKey:key];
+  if (value > FLT_MAX || value < -FLT_MAX) {
+    [self fail:@"%@ is out of range", key];
+    return 0;
+  }
+  return (float)value;
 }
 
 - (double)decodeFloat64ForKey:(NXString *)key {
@@ -760,6 +769,11 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
         if ([scanner tokenClass] != NXScannerClassString ||
             (key = [NXString stringWithQuotedString:[scanner token]]) == nil) {
           [self fail:@"a key isn't a string, at %u", (unsigned)[scanner tokenPosition]];
+          return nil;
+        }
+        if ([key length] > _maxLength) {
+          [self fail:@"a key is longer than %u bytes, at %u", (unsigned)_maxLength,
+                     (unsigned)[scanner tokenPosition]];
           return nil;
         }
         if (![self nextToken:scanner] || [scanner tokenClass] != NXScannerClassPunct ||

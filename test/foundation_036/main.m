@@ -147,6 +147,29 @@ static void expect_failure(Class cls, const char *cStr) {
   [stream close];
 }
 
+// Decodes with limits, returning YES if it read without failing
+static BOOL decode_with(const char *cStr, unsigned depth, size_t length) {
+  NXStream *stream = stream_of(cStr);
+  NXArchive *archive = [NXArchive JSONDecoderWithStream:stream];
+  if (depth > 0) {
+    [archive setMaximumDepth:depth];
+  }
+  [archive setMaximumLength:length];
+  BOOL read = [archive decodeObjectOfClass:Nil forKey:nil] != nil && ![archive failed];
+  [stream close];
+  return read;
+}
+
+// Decodes a float32 for a key, and whether that failed
+static float decode_float32(const char *cStr, BOOL *failed) {
+  NXStream *stream = stream_of(cStr);
+  NXArchive *archive = [NXArchive JSONDecoderWithStream:stream];
+  float value = [archive decodeFloat32ForKey:@"f"];
+  *failed = [archive failed];
+  [stream close];
+  return value;
+}
+
 static id round_trip(Class cls, id object) {
   NXString *string = json(object, 0);
   test_assert(string != nil);
@@ -302,27 +325,33 @@ static void decoding(void) {
     expect_failure(Nil, invalid[i]);
   }
 
-  // Limits on depth and length
-  NXArchive *archive = [NXArchive
-      JSONDecoderWithStream:[NXStream streamWithString:@"[[[[1]]]]"]];
-  [archive setMaximumDepth:3];
-  test_assert([archive decodeObjectOfClass:Nil forKey:nil] == nil && [archive failed]);
-  archive = [NXArchive JSONDecoderWithStream:[NXStream streamWithString:@"[[[1]]]"]];
-  [archive setMaximumDepth:3];
-  test_assert([archive decodeObjectOfClass:Nil forKey:nil] != nil && ![archive failed]);
-  archive = [NXArchive JSONDecoderWithStream:[NXStream streamWithString:@"[\"abcd\"]"]];
-  [archive setMaximumLength:3];
-  test_assert([archive decodeObjectOfClass:Nil forKey:nil] == nil && [archive failed]);
-  archive = [NXArchive JSONDecoderWithStream:[NXStream streamWithString:@"[1,2,3,4]"]];
-  [archive setMaximumLength:3];
-  test_assert([archive decodeObjectOfClass:Nil forKey:nil] == nil && [archive failed]);
+  // Limits on depth and length, of strings, keys, arrays and objects
+  test_assert(!decode_with("[[[[1]]]]", 3, SIZE_MAX));
+  test_assert(decode_with("[[[1]]]", 3, SIZE_MAX));
+  test_assert(!decode_with("[\"abcd\"]", 0, 3));
+  test_assert(!decode_with("[1,2,3,4]", 0, 3));
+  test_assert(!decode_with("{\"abcd\":0}", 0, 3));
+  test_assert(decode_with("{\"abc\":0}", 0, 3));
+
+  // A float32 out of range
+  BOOL failed;
+  test_assert(decode_float32("{\"f\":1e100}", &failed) == 0 && failed);
+  test_assert(decode_float32("{\"f\":-1e39}", &failed) == 0 && failed);
+  test_assert(decode_float32("{\"f\":3e38}", &failed) > 2.9e38f && !failed);
 
   // Keys at the top of a decoder
-  archive = [NXArchive JSONDecoderWithStream:[NXStream streamWithString:@"{\"n\":7}"]];
+  NXStream *stream = stream_of("{\"n\":7}");
+  NXArchive *archive = [NXArchive JSONDecoderWithStream:stream];
   test_assert([archive containsKey:@"n"] && ![archive containsKey:@"m"]);
   test_assert([archive decodeInt64ForKey:@"n"] == 7 && [archive decodeInt64ForKey:@"m"] == 0);
   test_assert(![archive failed] && ![archive isEncoding]);
   test_assert(![archive encodeInt32:1 forKey:@"n"] && [archive failed]);
+  [stream close];
+  stream = stream_of("{\"n\":7}");
+  archive = [NXArchive JSONDecoderWithStream:stream];
+  test_assert(![archive encodeObject:@"x" forKey:@"n"] && [archive failed]);
+  test_assert([archive decodeInt64ForKey:@"n"] == 0);
+  [stream close];
 }
 
 test_main(0) {
