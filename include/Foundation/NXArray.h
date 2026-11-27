@@ -19,7 +19,7 @@
  * A for...in loop goes through the objects in order. Adding or removing objects in the
  * loop panics, unless it then stops with break, but replacing one doesn't.
  *
- * An array shouldn't be changed by one thread while another uses it.
+ * Any number of threads can read an array at once, but while one changes it, no other thread can use it, and it doesn't lock itself. See \ref foundation_threads.
  *
  * \headerfile NXArray.h Foundation/Foundation.h
  */

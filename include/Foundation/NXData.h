@@ -14,7 +14,7 @@
  * The bytes can be any value, including zero. They're kept one after another in memory
  * from the zone of the data, which is twice as big when more room is needed.
  *
- * Data shouldn't be changed by one thread while another uses it.
+ * Any number of threads can read data at once, but while one changes it, no other thread can use it, and it doesn't lock itself. See \ref foundation_threads.
  *
  * \headerfile NXData.h Foundation/Foundation.h
  */

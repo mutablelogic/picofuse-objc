@@ -27,8 +27,11 @@
  *
  * There's a limit to how many streams can be open at once (SYS_IOSTREAM_CAPACITY), which
  * includes the standard input and output, so close them once they're no longer needed, if
- * they might not be deallocated soon. A stream shouldn't be used by two threads at the
- * same time.
+ * they might not be deallocated soon.
+ *
+ * A stream is used by one thread at a time. Streams of the standard input share a byte
+ * which has been peeked at, so only one thread reads the standard input. See
+ * \ref foundation_threads.
  *
  * \headerfile NXStream.h Foundation/Foundation.h
  */

@@ -44,6 +44,8 @@ uint64_t NXRandUnsignedInt64(void);
  * fraction of a floating point value is discarded, and it panics if the value is out of
  * range, or isn't a number. As a floating point value, it may be rounded.
  *
+ * A number can't change, so any number of threads can use it at once. See \ref foundation_threads.
+ *
  * \headerfile NXNumber.h Foundation/Foundation.h
  */
 @interface NXNumber : NXObject

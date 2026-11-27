@@ -12,6 +12,8 @@
  *
  * There's only one, which is never deallocated, and doesn't need an autorelease pool.
  *
+ * Any number of threads can use it at once.
+ *
  * \headerfile NXNull.h Foundation/Foundation.h
  */
 @interface NXNull : NXObject
