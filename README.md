@@ -2,6 +2,14 @@
 
 Objective-C Framework for Event-Driven Embedded System Development
 
+## Documentation
+
+* [Objective-C runtime](https://mutablelogic.github.io/picofuse-objc/group__objc.html)
+* [Foundation framework](https://mutablelogic.github.io/picofuse-objc/group__Foundation.html),
+  including [threads and mutable objects](https://mutablelogic.github.io/picofuse-objc/group__Foundation.html#foundation_threads)
+
+Build it with `make doc`, which runs Doxygen in Docker and writes it to `doc/`.
+
 ## Building
 
 picofuse-objc is built against an installed copy of

@@ -93,6 +93,7 @@ typedef enum {
 
 /**
  * @brief Returns a new archive which writes JSON to a stream.
+ * @param stream The stream, which it writes to as values are encoded.
  * @param indent The number of spaces for each level, or zero to write one line.
  */
 + (id)JSONEncoderWithStream:(NXStream *)stream indent:(unsigned)indent;
@@ -124,6 +125,8 @@ typedef enum {
  * @brief Reads an object of a class, or a subclass, from a stream.
  * @param cls The class, or Nil for whatever is there, as maps, arrays, strings and
  * numbers.
+ * @param stream The stream to read from.
+ * @param format The format of the stream.
  * @return The object, or nil if it couldn't be read or isn't of the class.
  */
 + (id)decodeObjectOfClass:(Class)cls
@@ -212,6 +215,7 @@ typedef enum {
  * @brief Reads an object of a class, or of a subclass if the JSON names one with
  * "@class".
  * @param cls The class, or Nil for whatever is there.
+ * @param key The key, or nil for the value which is the whole archive.
  * @return The object, or nil if there's no such key, or it's null. If it isn't of the
  * class, the archive fails, and it's nil.
  */
