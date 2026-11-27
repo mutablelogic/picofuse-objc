@@ -129,20 +129,19 @@ void NXStringBufferRelease(void) {
   const char *cStr = [quoted cStr];
   size_t length = [quoted length];
 
-  // Check it's valid, without writing anything
-  if (self == nil || length < 2 || sys_string_parse_quoted(cStr, length, NULL, 0) < 0) {
+  // Check it's valid and find its decoded length, without writing anything
+  ptrdiff_t decoded = length < 2 ? -1 : sys_string_parse_quoted(cStr, length, NULL, 0);
+  if (self == nil || decoded < 0) {
     [self release];
     return nil;
   }
-
-  // Decoding never makes it longer than what's between the quotes
-  if (length > 2) {
-    char *data = [self allocateLength:length - 2];
+  if (decoded > 0) {
+    char *data = [self allocateLength:(size_t)decoded];
     if (data == NULL) {
       [self release];
       return nil;
     }
-    ptrdiff_t decoded = sys_string_parse_quoted(cStr, length, data, length - 2);
+    sys_string_parse_quoted(cStr, length, data, (size_t)decoded);
 
     // A string stops at a zero
     [self shortenLength:strnlen(data, (size_t)decoded)];
