@@ -26,6 +26,11 @@
  *   object which objectAtIndex: or objectForKey: returned, as they aren't retained. To
  *   give another thread an array or map which won't change underneath it, give it a
  *   -copy.
+ * - Misuse is caught, best effort, in every build, as Go catches it for maps: an
+ *   NXArray, NXMap, NXMutableString or NXData panics if two threads change it at once,
+ *   if it's read while another thread changes it, or if it's changed in the middle of
+ *   a change, as from an isEqual: which the change called. It's caught when the threads
+ *   overlap where it's checked, so not always, and costs a read and a comparison.
  * - An NXStream or an NXScanner is used by one thread at a time. Streams of the
  *   standard input share a byte which has been peeked at, so only one thread reads the
  *   standard input.
