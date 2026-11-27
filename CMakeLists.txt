@@ -83,6 +83,9 @@ add_subdirectory(src/runtime/gcc)
 # Foundation
 add_subdirectory(src/Foundation)
 
+# Application
+add_subdirectory(src/Application)
+
 # Tests
 include(CTest)
 add_subdirectory(test)

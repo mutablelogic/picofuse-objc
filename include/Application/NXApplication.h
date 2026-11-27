@@ -1,0 +1,103 @@
+/**
+ * @file NXApplication.h
+ * @brief Defines the NXApplication class, the application which runs a run loop.
+ */
+#pragma once
+#include "NXRunLoop.h"
+#include <stdint.h>
+
+/**
+ * @brief What an application tells its delegate. Each method is optional.
+ * @ingroup Application
+ *
+ * \headerfile NXApplication.h Application/Application.h
+ */
+@protocol NXApplicationDelegate
+@optional
+
+
+/**
+ * @brief Called on worker 0 when the application starts. Events can be posted from here,
+ * and none are dispatched, on any worker, until it returns.
+ */
+- (void)applicationDidStart:(NXApplication *)application;
+
+/**
+ * @brief Called on the thread which ran the application, once it has been terminated,
+ * every event which was posted has been dispatched, and every worker has finished.
+ */
+- (void)applicationWillTerminate:(NXApplication *)application;
+
+@end
+
+/**
+ * @brief The application: one for the program, which runs a run loop until it's
+ * terminated.
+ * @ingroup Application
+ *
+ * \code
+ * int main(void) {
+ *   [[NXApplication sharedApplication] setDelegate:delegate];
+ *   return [NXApplication run];
+ * }
+ * \endcode
+ *
+ * \headerfile NXApplication.h Application/Application.h
+ */
+@interface NXApplication : NXObject <NXRunLoopDelegate> {
+@private
+  NXRunLoop *_runLoop;                    ///< Its run loop
+  id<NXApplicationDelegate> _delegate;    ///< Not retained
+  uint8_t _workers;                       ///< 0 for every core
+}
+
+/**
+ * @brief Returns the application, which is made the first time, and never deallocated.
+ */
++ (NXApplication *)sharedApplication;
+
+/**
+ * @brief Runs the shared application, as -run does.
+ */
++ (int)run;
+
+/**
+ * @brief Runs the application's run loop, until it's terminated. The thread which calls
+ * this is worker 0.
+ * @return The status it was terminated with, or -1 if it couldn't run.
+ */
+- (int)run;
+
+/**
+ * @brief Returns the application's run loop, to post events to.
+ */
+- (NXRunLoop *)runLoop;
+
+/**
+ * @brief Returns the number of workers, which is 0 for one on every core.
+ */
+- (uint8_t)workers;
+
+/**
+ * @brief Sets the number of workers, before it runs: 0 for one on every core, which is
+ * the default, or 1 to dispatch every event on the thread which runs it.
+ */
+- (void)setWorkers:(uint8_t)workers;
+
+/**
+ * @brief Returns the delegate, which isn't retained.
+ */
+- (id<NXApplicationDelegate>)delegate;
+
+/**
+ * @brief Sets the delegate, which isn't retained.
+ */
+- (void)setDelegate:(id<NXApplicationDelegate>)delegate;
+
+/**
+ * @brief Terminates it: once the events which have been posted are dispatched, run
+ * returns a status.
+ */
+- (void)terminateWithStatus:(int)status;
+
+@end

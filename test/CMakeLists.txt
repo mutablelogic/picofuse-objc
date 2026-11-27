@@ -520,3 +520,12 @@ objc_test(foundation_038
     foundation_038/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+###############################################################################
+# Application
+
+# NXRunLoop and NXApplication: events across workers, delegates, and shutting down.
+objc_test(application_001
+    application_001/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)
