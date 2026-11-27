@@ -514,3 +514,9 @@ objc_test(foundation_037
     foundation_037/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# +new, maps from arrays of objects and keys, and data from strings.
+objc_test(foundation_038
+    foundation_038/main.m
+    LIBRARIES picofuse-objc-foundation
+)
