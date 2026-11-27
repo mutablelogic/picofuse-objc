@@ -165,7 +165,8 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
               format:(NXArchiveFormat)format
             encoding:(BOOL)encoding
               indent:(unsigned)indent;
-- (BOOL)beginBinary;
+- (BOOL)beginBinaryEncoding:(BOOL)encoding;
+- (BOOL)readFully:(void *)bytes length:(size_t)length;
 - (BOOL)writeLittle:(uint64_t)value size:(unsigned)size;
 - (BOOL)writeVarint:(uint64_t)value;
 - (BOOL)writeHash:(const char *)name;
@@ -173,7 +174,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (BOOL)readLittle:(uint64_t *)value size:(unsigned)size;
 - (BOOL)readVarint:(uint64_t *)value;
 - (BOOL)readLength:(size_t *)length;
-- (id)decodeBinaryObjectOfClass:(Class)cls;
+- (id)decodeBinaryObjectOfClass:(Class)cls elements:(Class)elements;
 - (void)fail:(NXString *)format, ...;
 - (BOOL)write:(const char *)bytes length:(size_t)length;
 - (BOOL)writeCString:(const char *)cStr;
@@ -291,21 +292,21 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 
 - (BOOL)encodeBool:(BOOL)value forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self writeLittle:value ? 1 : 0 size:1];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:value ? 1 : 0 size:1];
   }
   return [self beginValueForKey:key] && [self writeCString:value ? "true" : "false"];
 }
 
 - (BOOL)encodeInt32:(int32_t)value forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self writeLittle:(uint32_t)value size:4];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:(uint32_t)value size:4];
   }
   return [self encodeInt64:value forKey:key];
 }
 
 - (BOOL)encodeInt64:(int64_t)value forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self writeLittle:(uint64_t)value size:8];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:(uint64_t)value size:8];
   }
   char buffer[32];
   sys_sprintf(buffer, sizeof(buffer), "%ld", value);
@@ -314,14 +315,14 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 
 - (BOOL)encodeUnsignedInt32:(uint32_t)value forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self writeLittle:value size:4];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:value size:4];
   }
   return [self encodeUnsignedInt64:value forKey:key];
 }
 
 - (BOOL)encodeUnsignedInt64:(uint64_t)value forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self writeLittle:value size:8];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:value size:8];
   }
   char buffer[32];
   sys_sprintf(buffer, sizeof(buffer), "%lu", value);
@@ -332,7 +333,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
   if (_format == NXArchiveFormatBinary) {
     uint32_t bits;
     memcpy(&bits, &value, sizeof(bits));
-    return [self beginBinary] && [self writeLittle:bits size:4];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:bits size:4];
   }
   if (value != value || value - value != 0) {
     [self fail:@"%@ isn't a finite number, which JSON can't have", key];
@@ -347,7 +348,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
   if (_format == NXArchiveFormatBinary) {
     uint64_t bits;
     memcpy(&bits, &value, sizeof(bits));
-    return [self beginBinary] && [self writeLittle:bits size:8];
+    return [self beginBinaryEncoding:YES] && [self writeLittle:bits size:8];
   }
   if (value != value || value - value != 0) {
     [self fail:@"%@ isn't a finite number, which JSON can't have", key];
@@ -375,7 +376,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
     return NO;
   }
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] && [self encodeBinaryObject:object];
+    return [self beginBinaryEncoding:YES] && [self encodeBinaryObject:object];
   }
   if (object == nil || object == [NXNull nullValue]) {
     return [self beginValueForKey:key] && [self writeCString:"null"];
@@ -480,7 +481,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (BOOL)decodeBoolForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    if ([self beginBinary] && [self readLittle:&value size:1] && value > 1) {
+    if ([self beginBinaryEncoding:NO] && [self readLittle:&value size:1] && value > 1) {
       [self fail:@"%@ isn't true or false", key];
     }
     return _failure == nil && value == 1;
@@ -496,7 +497,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (int32_t)decodeInt32ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    return [self beginBinary] && [self readLittle:&value size:4] ? (int32_t)(uint32_t)value : 0;
+    return [self beginBinaryEncoding:NO] && [self readLittle:&value size:4] ? (int32_t)(uint32_t)value : 0;
   }
   BOOL negative;
   uint64_t magnitude;
@@ -513,7 +514,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (int64_t)decodeInt64ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    return [self beginBinary] && [self readLittle:&value size:8] ? (int64_t)value : 0;
+    return [self beginBinaryEncoding:NO] && [self readLittle:&value size:8] ? (int64_t)value : 0;
   }
   BOOL negative;
   uint64_t magnitude;
@@ -530,7 +531,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (uint32_t)decodeUnsignedInt32ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    return [self beginBinary] && [self readLittle:&value size:4] ? (uint32_t)value : 0;
+    return [self beginBinaryEncoding:NO] && [self readLittle:&value size:4] ? (uint32_t)value : 0;
   }
   BOOL negative;
   uint64_t magnitude;
@@ -547,7 +548,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (uint64_t)decodeUnsignedInt64ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    return [self beginBinary] && [self readLittle:&value size:8] ? value : 0;
+    return [self beginBinaryEncoding:NO] && [self readLittle:&value size:8] ? value : 0;
   }
   BOOL negative;
   uint64_t magnitude;
@@ -564,7 +565,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (float)decodeFloat32ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t value = 0;
-    if (![self beginBinary] || ![self readLittle:&value size:4]) {
+    if (![self beginBinaryEncoding:NO] || ![self readLittle:&value size:4]) {
       return 0;
     }
     uint32_t bits = (uint32_t)value;
@@ -583,7 +584,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 - (double)decodeFloat64ForKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
     uint64_t bits = 0;
-    if (![self beginBinary] || ![self readLittle:&bits size:8]) {
+    if (![self beginBinaryEncoding:NO] || ![self readLittle:&bits size:8]) {
       return 0;
     }
     double d;
@@ -600,7 +601,7 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 
 - (id)decodeObjectOfClass:(Class)cls forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    return [self beginBinary] ? [self decodeBinaryObjectOfClass:cls] : nil;
+    return [self beginBinaryEncoding:NO] ? [self decodeBinaryObjectOfClass:cls elements:Nil] : nil;
   }
   id value = [self valueForKey:key];
   return value == nil ? nil : [self convert:value toClass:cls key:key];
@@ -608,26 +609,9 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 
 - (NXArray *)decodeArrayOfClass:(Class)cls forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    uint64_t hash = 0;
-    if (![self beginBinary] || ![self readLittle:&hash size:4] || hash == 0) {
-      return nil;
-    }
-    size_t count;
-    if (hash != name_hash("NXArray")) {
-      [self fail:@"%@ isn't an array", key];
-      return nil;
-    }
-    if (![self readLength:&count]) {
-      return nil;
-    }
-    NXArray *array = [NXArray arrayWithCapacity:count];
-    for (size_t i = 0; i < count && _failure == nil; i++) {
-      id object = [self decodeBinaryObjectOfClass:cls];
-      if (_failure == nil && ![array appendObject:object == nil ? [NXNull nullValue] : object]) {
-        [self fail:@"not enough memory for %@", key];
-      }
-    }
-    return _failure == nil ? array : nil;
+    return [self beginBinaryEncoding:NO] ? [self decodeBinaryObjectOfClass:[NXArray class]
+                                                                 elements:cls]
+                                         : nil;
   }
   id value = [self valueForKey:key];
   if (value == nil) {
@@ -652,28 +636,9 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 
 - (NXMap *)decodeMapOfClass:(Class)cls forKey:(NXString *)key {
   if (_format == NXArchiveFormatBinary) {
-    uint64_t hash = 0;
-    if (![self beginBinary] || ![self readLittle:&hash size:4] || hash == 0) {
-      return nil;
-    }
-    size_t count;
-    if (hash != name_hash("NXMap")) {
-      [self fail:@"%@ isn't a map", key];
-      return nil;
-    }
-    if (![self readLength:&count]) {
-      return nil;
-    }
-    NXMap *map = [NXMap mapWithCapacity:count];
-    for (size_t i = 0; i < count && _failure == nil; i++) {
-      id k = [self decodeBinaryObjectOfClass:Nil];
-      id object = [self decodeBinaryObjectOfClass:cls];
-      if (_failure == nil && (k == nil || ![map setObject:object == nil ? [NXNull nullValue] : object
-                                                  forKey:k])) {
-        [self fail:k == nil ? @"a key in %@ is nil" : @"not enough memory for %@", key];
-      }
-    }
-    return _failure == nil ? map : nil;
+    return [self beginBinaryEncoding:NO] ? [self decodeBinaryObjectOfClass:[NXMap class]
+                                                                 elements:cls]
+                                         : nil;
   }
   id value = [self valueForKey:key];
   if (value == nil) {
@@ -1184,12 +1149,18 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
 ///////////////////////////////////////////////////////////////////////////////
 // BINARY
 
-// Starts a value: the header comes first, and there's only one value at the top
-- (BOOL)beginBinary {
+// Starts a value, for an encoder or a decoder: the header comes first, and there's
+// only one value at the top. The classes which adopt NXArchiving are found first, so a
+// hash which is the same as another's panics before it's used.
+- (BOOL)beginBinaryEncoding:(BOOL)encoding {
+  if (encoding != _encoding) {
+    [self fail:_encoding ? @"it's an encoder" : @"it's a decoder"];
+  }
   if (_failure != nil) {
     return NO;
   }
   if (_depth == 0) {
+    find_archive_classes();
     if (_top) {
       [self fail:@"there's only one value in an archive, at the top"];
       return NO;
@@ -1199,8 +1170,10 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
       return [self write:binary_header length:sizeof(binary_header)];
     }
     char header[sizeof(binary_header)];
-    if ([_stream readBytes:header length:sizeof(header)] != sizeof(header) ||
-        memcmp(header, binary_header, sizeof(header)) != 0) {
+    if (![self readFully:header length:sizeof(header)]) {
+      return NO;
+    }
+    if (memcmp(header, binary_header, sizeof(header)) != 0) {
       [self fail:@"it isn't a binary archive of this version"];
       return NO;
     }
@@ -1325,13 +1298,27 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
   return encoded && _failure == nil;
 }
 
-- (BOOL)readLittle:(uint64_t *)value size:(unsigned)size {
+// Reads all of some bytes, as a stream may give fewer than are asked for at a time.
+// It's the end of the archive if a read gives none.
+- (BOOL)readFully:(void *)bytes length:(size_t)length {
   if (_failure != nil) {
     return NO;
   }
+  size_t read = 0;
+  while (read < length) {
+    size_t n = [_stream readBytes:(char *)bytes + read length:length - read];
+    if (n == 0) {
+      [self fail:@"the archive ends early"];
+      return NO;
+    }
+    read += n;
+  }
+  return YES;
+}
+
+- (BOOL)readLittle:(uint64_t *)value size:(unsigned)size {
   uint8_t bytes[8];
-  if ([_stream readBytes:bytes length:size] != size) {
-    [self fail:@"the archive ends early"];
+  if (![self readFully:bytes length:size]) {
     return NO;
   }
   *value = 0;
@@ -1375,8 +1362,9 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
   return YES;
 }
 
-// Reads an object, which is of a class or a subclass of it, or anything if it's Nil
-- (id)decodeBinaryObjectOfClass:(Class)cls {
+// Reads an object, which is of a class or a subclass of it, or anything if it's Nil.
+// The objects in an array or map are of the elements class, or anything if it's Nil.
+- (id)decodeBinaryObjectOfClass:(Class)cls elements:(Class)elements {
   uint64_t hash;
   if (![self readLittle:&hash size:4]) {
     return nil;
@@ -1398,8 +1386,8 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
       [self fail:@"not enough memory"];
       return nil;
     }
-    if (length > 0 && [_stream readBytes:bytes length:length] != length) {
-      [self fail:@"the archive ends early"];
+    if (length > 0 && ![self readFully:bytes length:length]) {
+      // It's failed
     } else if (hash == name_hash("NXString")) {
       object = [[[NXString alloc] initWithBytes:bytes length:length] autorelease];
     } else {
@@ -1423,7 +1411,11 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
       switch (kind) {
       case NUMBER_BOOL:
         if ([self readLittle:&value size:1]) {
-          object = value == 0 ? [NXNumber falseValue] : [NXNumber trueValue];
+          if (value > 1) {
+            [self fail:@"a boolean isn't 0 or 1"];
+          } else {
+            object = value == 0 ? [NXNumber falseValue] : [NXNumber trueValue];
+          }
         }
         break;
       case NUMBER_INT64:
@@ -1478,9 +1470,12 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
       if ([self readLength:&count]) {
         id container = isArray ? (id)[NXArray arrayWithCapacity:count]
                                : (id)[NXMap mapWithCapacity:count];
+        if (container == nil) {
+          [self fail:@"not enough memory"];
+        }
         for (size_t i = 0; i < count && _failure == nil; i++) {
-          id k = isMap ? [self decodeBinaryObjectOfClass:Nil] : nil;
-          id element = [self decodeBinaryObjectOfClass:Nil];
+          id k = isMap ? [self decodeBinaryObjectOfClass:Nil elements:Nil] : nil;
+          id element = [self decodeBinaryObjectOfClass:elements elements:Nil];
           if (_failure != nil) {
             break;
           }
@@ -1502,7 +1497,10 @@ static BOOL is_json_number(const char *s, size_t length, BOOL *integer) {
     _depth--;
     return _failure == nil ? object : nil;
   }
-  if (object == nil || _failure != nil) {
+  if (object == nil && _failure == nil) {
+    [self fail:@"not enough memory"];
+  }
+  if (_failure != nil) {
     return nil;
   }
   if (cls != Nil && !object_isKindOfClass(object, cls)) {
