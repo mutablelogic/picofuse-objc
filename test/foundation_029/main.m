@@ -20,6 +20,11 @@ test_main(0) {
   for (id object in array) {
     [array removeObject:object];
   }
+#elif defined(CASE_array_sort)
+  for (id object in array) {
+    (void)object;
+    [array sortUsingSelector:@selector(compare:)];
+  }
 #elif defined(CASE_array_remove_only)
   // The only object, when the loop doesn't check again before it ends
   NXArray *one = [NXArray arrayWithObjects:@"a", nil];

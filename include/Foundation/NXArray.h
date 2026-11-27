@@ -158,4 +158,32 @@
  */
 - (NXString *)description;
 
+/**
+ * @brief Returns a new array with some of the objects, in the same order.
+ * @param index The index of the first.
+ * @param count The number of them.
+ * @return The array, or nil if they'd run past the end or there isn't enough memory.
+ */
+- (NXArray *)subarrayFromIndex:(size_t)index count:(size_t)count;
+
+/**
+ * @brief Returns the objects joined into a string, with a separator between them.
+ * Strings are joined as they are, and other objects by their description.
+ * @param separator The separator, or nil for none.
+ * @return The string, which is empty if there are no objects, or nil if there isn't
+ * enough memory.
+ */
+- (NXString *)componentsJoinedByString:(NXString *)separator;
+
+/**
+ * @brief Sorts the objects, by sending each a comparator, such as \@selector(compare:),
+ * with the other as its argument, which returns an NXComparisonResult.
+ * @return YES, or NO if the comparator is NULL or there isn't enough memory, when the
+ * order isn't changed.
+ *
+ * Objects which are the same keep their order. It needs room for half the objects in
+ * the array's zone while it sorts. Sorting in a for...in loop over the array panics.
+ */
+- (BOOL)sortUsingSelector:(SEL)comparator;
+
 @end
