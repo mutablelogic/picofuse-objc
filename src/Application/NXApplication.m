@@ -143,15 +143,26 @@ static size_t index_of(NXArray *array, id object) {
 // HID starts on the run loop's queue, with every source attached, before any event is
 // dispatched
 - (void)runLoopDidStart:(NXRunLoop *)runLoop {
+  // Sources which can't start, such as when there's no HID timer left, are detached
+  NXArray *failed = [NXArray array];
   @synchronized(self) {
     _hid = hid_init([runLoop queue]);
     if (_hid == NULL) {
       sys_panicf("-[NXApplication run] HID couldn't be initialized");
     }
-    for (id<NXEventSourcePrivate> source in _sources) {
-      [source attachToHID:_hid];
+    // In the order they were attached, so the first get what HID has
+    size_t i = 0;
+    while (i < [_sources count]) {
+      id<NXEventSourcePrivate> source = [_sources objectAtIndex:i];
+      if ([source attachToHID:_hid]) {
+        i++;
+      } else {
+        [failed appendObject:source];
+        [_sources removeObjectAtIndex:i];
+      }
     }
   }
+  (void)failed; // released with the pool, outside the lock
   tell(_delegate, @selector(applicationDidStart:), self);
 }
 

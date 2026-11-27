@@ -107,6 +107,8 @@
  * @brief Attaches an event source, such as a timer, which is retained until it's
  * detached. It starts producing events when the application runs, or straight away if
  * it's running, and stops when the application stops, starting again if it runs again.
+ * If it can't start when the application runs, such as when there's no HID timer left,
+ * it's detached.
  * @return YES, or NO if it's attached already, it isn't one of the Application
  * framework's sources, or it couldn't start.
  */
