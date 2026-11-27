@@ -55,6 +55,14 @@
 + (id)dataWithBase64String:(NXString *)string;
 
 /**
+ * @brief Returns a copy of the bytes of a string, which are its UTF-8, without a
+ * terminating zero.
+ * @param string The string, or nil for no bytes.
+ * @return The data, or nil if there isn't enough memory.
+ */
++ (id)dataWithString:(NXString *)string;
+
+/**
  * @brief Initializes empty data with room for a number of bytes.
  */
 - (id)initWithCapacity:(size_t)capacity;

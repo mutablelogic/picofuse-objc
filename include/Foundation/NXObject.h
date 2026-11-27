@@ -45,6 +45,13 @@
 + (id)allocWithZone:(NXZone *)zone;
 
 /**
+ * @brief Allocates and initializes a new instance, as [[cls alloc] init] does.
+ * @return A new instance, which isn't autoreleased: its retain count is one. It's nil
+ * if the allocation or initialization failed.
+ */
++ (id)new;
+
+/**
  * @brief Frees the instance.
  *
  * This is called when the retain count reaches zero, and shouldn't be called

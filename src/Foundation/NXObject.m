@@ -41,6 +41,10 @@ static inline uint32_t release_count(NXObjectHeader *header) {
   return [self allocWithZone:nil];
 }
 
++ (id)new {
+  return [[self alloc] init];
+}
+
 + (id)allocWithZone:(NXZone *)zone {
   size_t size = NXObjectSize(self);
   void *memory;
