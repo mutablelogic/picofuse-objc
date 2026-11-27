@@ -61,7 +61,8 @@ typedef enum {
  * with picofuse's printf, which writes 9 significant digits at most, so a float32 reads
  * back as it was, but a float64 only to 9 digits.
  *
- * Binary has no keys: values are read back in the order they were written, so decode
+ * Binary starts with "PF" and a version, which is 1. It has no keys: values are read
+ * back in the order they were written, so decode
  * the same types, in the same order, as were encoded. Numbers are little-endian, and
  * floating point numbers are exact. Each object starts with a 32-bit FNV-1a hash of its
  * class's name, which is checked when it's read, so a subclass is read as itself. The
