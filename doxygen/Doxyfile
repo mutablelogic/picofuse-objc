@@ -1,0 +1,34 @@
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "picofuse-objc"
+PROJECT_BRIEF          = "Objective-C Framework for Event-Driven Embedded System Development"
+PROJECT_LOGO           =
+OUTPUT_DIRECTORY       = /data/doc
+INPUT                  = /data/README.md /data/include/runtime/gcc /data/include/Foundation
+USE_MDFILE_AS_MAINPAGE = README.md
+STRIP_FROM_PATH        = /data
+FILE_PATTERNS          = "*.h" "*.md"
+EXTENSION_MAPPING      = h=Objective-C
+RECURSIVE              = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = __OBJC__=1 \
+                          __attribute__(x)= \
+                          _Noreturn=
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+JAVADOC_AUTOBRIEF      = YES
+WARN_FORMAT            = "$file:$line: $text"
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = YES
+GENERATE_HTML          = YES
+HTML_OUTPUT            = .
+HAVE_DOT               = YES
+HTML_EXTRA_STYLESHEET  = /data/doxygen/custom.css
+HTML_HEADER            = /data/doxygen/header.html
+HTML_FOOTER            = /data/doxygen/footer.html
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO

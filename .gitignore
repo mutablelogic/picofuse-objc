@@ -56,3 +56,6 @@ dkms.conf
 
 # Build directories
 build*/
+
+# Documentation, made by make doc
+doc/

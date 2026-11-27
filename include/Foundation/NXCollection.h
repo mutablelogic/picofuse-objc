@@ -16,7 +16,7 @@
  *
  * \headerfile NXCollection.h Foundation/Foundation.h
  */
-@protocol NXCollection <NXFastEnumeration>
+@protocol NXCollection<NXFastEnumeration>
 
 /**
  * @brief Returns the number of objects.
