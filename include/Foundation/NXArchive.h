@@ -11,7 +11,8 @@
  * @ingroup Foundation
  */
 typedef enum {
-  NXArchiveFormatJSON, ///< JSON, with keys, and no classes unless they differ
+  NXArchiveFormatJSON,   ///< JSON, with keys, and no classes unless they differ
+  NXArchiveFormatBinary, ///< Values in order, little-endian, with a hash of each class
 } NXArchiveFormat;
 
 @class NXArchive;
@@ -43,7 +44,7 @@ typedef enum {
 @end
 
 /**
- * @brief Writes objects out as JSON, and reads them back.
+ * @brief Writes objects out as JSON or binary, and reads them back.
  * @ingroup Foundation
  *
  * The code which decodes says which class it expects, as with Go's json.Unmarshal, so
@@ -59,6 +60,16 @@ typedef enum {
  * \\u escape of a UTF-16 surrogate pair can't be read. Floating point numbers are written
  * with picofuse's printf, which writes 9 significant digits at most, so a float32 reads
  * back as it was, but a float64 only to 9 digits.
+ *
+ * Binary starts with "PF" and a version, which is 1. It has no keys: values are read
+ * back in the order they were written, so decode
+ * the same types, in the same order, as were encoded. Numbers are little-endian, and
+ * floating point numbers are exact. Each object starts with a 32-bit FNV-1a hash of its
+ * class's name, which is checked when it's read, so a subclass is read as itself. The
+ * classes which adopt NXArchiving are found the first time one is read, and if two of
+ * their names have the same hash, it panics. Renaming a class changes its hash, so
+ * archives written before can't be read. Lengths are checked against the maximum
+ * before anything is allocated.
  *
  * \headerfile NXArchive.h Foundation/Foundation.h
  */
@@ -76,6 +87,8 @@ typedef enum {
   id _root;           ///< What was read, for a decoder
   id _current;        ///< The map whose keys are being decoded, or the root
   BOOL _read;         ///< YES once the decoder has read the stream
+  NXArchiveFormat _format; ///< JSON or binary
+  BOOL _top;          ///< YES once the value at the top of a binary archive is done
 }
 
 /**
@@ -89,6 +102,17 @@ typedef enum {
  * the first value is decoded, so limits can be set first.
  */
 + (id)JSONDecoderWithStream:(NXStream *)stream;
+
+/**
+ * @brief Returns a new archive which writes binary to a stream.
+ */
++ (id)binaryEncoderWithStream:(NXStream *)stream;
+
+/**
+ * @brief Returns a new archive which reads binary from a stream, as each value is
+ * decoded.
+ */
++ (id)binaryDecoderWithStream:(NXStream *)stream;
 
 /**
  * @brief Writes an object to a stream, on one line.
@@ -166,7 +190,8 @@ typedef enum {
 - (BOOL)encodeObject:(id)object asClass:(Class)cls forKey:(NXString *)key;
 
 /**
- * @brief Returns YES if the JSON object being decoded has a key.
+ * @brief Returns YES if the JSON object being decoded has a key. It's always YES for
+ * binary, which has no keys.
  */
 - (BOOL)containsKey:(NXString *)key;
 
