@@ -164,19 +164,28 @@ static size_t capacity_for(size_t count) {
 }
 
 - (void)removeAllObjects {
-  // Each is removed as removeObjectForKey: does, so what's left can always be found. A
-  // dealloc may change the map, so look again until it's empty.
+  // Each is removed as removeObjectForKey: does, so what's left can always be found.
+  // The table is only looked at during the change, which ends while each key and object
+  // is released, as a dealloc may change the map. Removing one can move another into
+  // its place, so the same index is looked at again, and from the start if the table
+  // has shrunk.
+  NXChangeBegin(&_changing, __func__);
+  size_t i = 0;
   while (_count > 0) {
-    for (size_t i = 0; i < _capacity && _count > 0; i++) {
-      while (i < _capacity && ((entry_t *)_entries)[i].key != nil) {
-        NXChangeBegin(&_changing, __func__);
-        entry_t removed = [self removeAtIndex:i];
-        NXChangeEnd(&_changing);
-        [removed.key release];
-        [removed.object release];
-      }
+    if (i >= _capacity) {
+      i = 0;
     }
+    if (((entry_t *)_entries)[i].key == nil) {
+      i++;
+      continue;
+    }
+    entry_t removed = [self removeAtIndex:i];
+    NXChangeEnd(&_changing);
+    [removed.key release];
+    [removed.object release];
+    NXChangeBegin(&_changing, __func__);
   }
+  NXChangeEnd(&_changing);
 }
 
 - (NXArray *)allKeys {
@@ -240,6 +249,7 @@ static size_t capacity_for(size_t count) {
     return NO;
   }
   NXMap *other = anObject;
+  NXReadCheck(&other->_changing, __func__);
   if (other->_count != _count) {
     return NO;
   }
