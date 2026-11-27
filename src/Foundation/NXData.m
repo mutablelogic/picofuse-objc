@@ -1,3 +1,4 @@
+#include "NXChange+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
@@ -9,6 +10,7 @@
 
 @interface NXData (Private)
 - (BOOL)reserve:(size_t)capacity;
+- (BOOL)add:(const void *)bytes length:(size_t)length;
 @end
 
 @implementation NXData
@@ -79,6 +81,7 @@
 // PROPERTIES
 
 - (size_t)length {
+  NXReadCheck(&_changing, __func__);
   return _length;
 }
 
@@ -87,6 +90,7 @@
 }
 
 - (const void *)bytes {
+  NXReadCheck(&_changing, __func__);
   return _length == 0 ? NULL : _bytes;
 }
 
@@ -94,45 +98,21 @@
 // PUBLIC METHODS
 
 - (BOOL)appendBytes:(const void *)bytes length:(size_t)length {
-  if (length == 0) {
-    return YES;
-  }
-  if (bytes == NULL || length > SIZE_MAX - _length) {
-    return NO;
-  }
-
-  // Twice the room, or as much as is needed, when there isn't enough
-  if (_length + length > _capacity) {
-    size_t capacity = _capacity < CAPACITY_MIN ? CAPACITY_MIN : _capacity;
-    while (capacity < _length + length) {
-      capacity = capacity > SIZE_MAX / 2 ? _length + length : capacity * 2;
-    }
-
-    // The bytes may be this data's own, which may move. Compare addresses
-    // as integers, since relational comparisons between pointers to
-    // different objects are undefined
-    uintptr_t start = (uintptr_t)_bytes;
-    uintptr_t at = (uintptr_t)bytes;
-    if (_bytes != NULL && at >= start && at - start < _length) {
-      size_t offset = (size_t)(at - start);
-      if (![self reserve:capacity]) {
-        return NO;
-      }
-      bytes = _bytes + offset;
-    } else if (![self reserve:capacity]) {
-      return NO;
-    }
-  }
-  memmove(_bytes + _length, bytes, length);
-  _length += length;
-  return YES;
+  NXChangeBegin(&_changing, __func__);
+  BOOL appended = [self add:bytes length:length];
+  NXChangeEnd(&_changing);
+  return appended;
 }
 
 - (BOOL)appendData:(NXData *)data {
+  if (data != nil) {
+    NXReadCheck(&data->_changing, __func__);
+  }
   return data == nil || [self appendBytes:data->_bytes length:data->_length];
 }
 
 - (NXString *)base64String {
+  NXReadCheck(&_changing, __func__);
   size_t length = sys_string_base64_encode(_bytes, _length, NULL, 0);
   if (length == 0) {
     return [NXString string];
@@ -148,6 +128,7 @@
 }
 
 - (NXData *)hashWithAlgorithm:(NXHashAlgorithm)algorithm {
+  NXReadCheck(&_changing, __func__);
   uint8_t digest[NXHashMaxSize];
   size_t size = 0;
 
@@ -182,11 +163,14 @@
     return NO;
   }
   NXData *other = anObject;
+  NXReadCheck(&_changing, __func__);
+  NXReadCheck(&other->_changing, __func__);
   return other->_length == _length &&
          (_length == 0 || memcmp(other->_bytes, _bytes, _length) == 0);
 }
 
 - (uintptr_t)hash {
+  NXReadCheck(&_changing, __func__);
   uintptr_t hash = _length;
   for (size_t i = 0; i < _length; i++) {
     hash = NXHashCombine(hash, _bytes[i]);
@@ -195,6 +179,7 @@
 }
 
 - (id)copy {
+  NXReadCheck(&_changing, __func__);
   NXData *copy = [[NXData allocInZone:[self zone]] initWithCapacity:_length];
   if (copy != nil && ![copy appendBytes:_bytes length:_length]) {
     [copy release];
@@ -204,6 +189,7 @@
 }
 
 - (NXString *)description {
+  NXReadCheck(&_changing, __func__);
   NXMutableString *description =
       [NXMutableString stringWithCapacity:_length < (SIZE_MAX - 2) / 2
                                               ? _length * 2 + 2
@@ -224,6 +210,42 @@
 @end
 
 @implementation NXData (Private)
+
+// Appends bytes, which can be the data's own
+- (BOOL)add:(const void *)bytes length:(size_t)length {
+  if (length == 0) {
+    return YES;
+  }
+  if (bytes == NULL || length > SIZE_MAX - _length) {
+    return NO;
+  }
+
+  // Twice the room, or as much as is needed, when there isn't enough
+  if (_length + length > _capacity) {
+    size_t capacity = _capacity < CAPACITY_MIN ? CAPACITY_MIN : _capacity;
+    while (capacity < _length + length) {
+      capacity = capacity > SIZE_MAX / 2 ? _length + length : capacity * 2;
+    }
+
+    // The bytes may be this data's own, which may move. Compare addresses
+    // as integers, since relational comparisons between pointers to
+    // different objects are undefined
+    uintptr_t start = (uintptr_t)_bytes;
+    uintptr_t at = (uintptr_t)bytes;
+    if (_bytes != NULL && at >= start && at - start < _length) {
+      size_t offset = (size_t)(at - start);
+      if (![self reserve:capacity]) {
+        return NO;
+      }
+      bytes = _bytes + offset;
+    } else if (![self reserve:capacity]) {
+      return NO;
+    }
+  }
+  memmove(_bytes + _length, bytes, length);
+  _length += length;
+  return YES;
+}
 
 // Makes room for a number of bytes, or returns NO if there isn't enough memory
 - (BOOL)reserve:(size_t)capacity {

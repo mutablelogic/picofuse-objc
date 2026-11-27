@@ -20,6 +20,7 @@
   char *_data;      ///< The contents, or NULL if there's no capacity
   size_t _length;   ///< The length, without the null terminator
   size_t _capacity; ///< The length there's room for, without the null terminator
+  uintptr_t _changing; ///< The thread which is changing it, or zero
 }
 
 /**
