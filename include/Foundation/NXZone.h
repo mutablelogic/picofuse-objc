@@ -17,6 +17,8 @@
  * allocated. When it's deallocated, there's no default zone until another zone is
  * created.
  *
+ * Any thread can use a zone, as it locks itself. See \ref foundation_threads.
+ *
  * \headerfile NXZone.h Foundation/Foundation.h
  */
 @interface NXZone : NXObject {

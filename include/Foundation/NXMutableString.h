@@ -8,7 +8,7 @@
  * @brief A string which can be changed.
  * @ingroup Foundation
  *
- * It shouldn't be changed while another thread is using it.
+ * Any number of threads can read it at once, but while one changes it, no other thread can use it, and it doesn't lock itself. See \ref foundation_threads.
  *
  * Methods which make the string longer return NO if there isn't enough memory, and
  * don't change it.

@@ -90,6 +90,8 @@ typedef enum {
  * }
  * @endcode
  *
+ * A scanner is used by one thread at a time. See \ref foundation_threads.
+ *
  * \headerfile NXScanner.h Foundation/Foundation.h
  */
 @interface NXScanner : NXObject {
