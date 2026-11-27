@@ -2,6 +2,7 @@
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
+#include <runtime/gcc/runtime.h>
 #include <picofuse/sys.h>
 #include <string.h>
 
@@ -182,10 +183,17 @@ static size_t capacity_for(size_t count) {
 
 // Copies the keys into objects a batch at a time, from the slot after the last batch's,
 // which is kept in the state. The keys move if the table changes, so changes are
-// counted.
+// counted. The loop checks the count before each key, but not after the last of a
+// batch, so that's checked here against the count when the loop started, kept in the
+// state.
 - (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
                                      objects:(id *)objects
                                        count:(unsigned long)count {
+  if (state->state == 0) {
+    state->extra[0] = _mutations;
+  } else if (state->extra[0] != _mutations) {
+    objc_enumerationMutation(self);
+  }
   entry_t *entries = _entries;
   size_t i = (size_t)state->state;
   unsigned long n = 0;

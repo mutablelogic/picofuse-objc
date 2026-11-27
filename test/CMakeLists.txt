@@ -384,7 +384,8 @@ objc_test(foundation_028
 )
 
 # Adding or removing objects in a for...in loop panics.
-foreach(_case array_append array_remove map_add map_remove)
+foreach(_case array_append array_remove array_remove_only map_add map_remove
+              map_remove_only map_remove_rest)
     objc_panic_test(foundation_029_${_case}
         "Collection changed while it was being enumerated"
         foundation_029/main.m
