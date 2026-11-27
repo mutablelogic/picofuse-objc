@@ -35,6 +35,7 @@
 #include "NXLog.h"
 
 // Protocols
+#include "NXFastEnumeration.h"
 #include "NXCollection.h"
 
 // Class Definitions

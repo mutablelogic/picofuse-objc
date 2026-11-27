@@ -16,6 +16,9 @@
  * zone, which is twice as big when more room is needed. An array can't hold nil, so
  * NXNull is used instead.
  *
+ * A for...in loop goes through the objects in order. Adding or removing objects in the
+ * loop panics, unless it then stops with break, but replacing one doesn't.
+ *
  * An array shouldn't be changed by one thread while another uses it.
  *
  * \headerfile NXArray.h Foundation/Foundation.h
@@ -25,6 +28,7 @@
   id *_objects;     ///< The objects, or NULL if there's no room yet
   size_t _count;    ///< The number of objects
   size_t _capacity; ///< The number of objects there's room for
+  unsigned long _mutations; ///< Counts objects added and removed, for for...in loops
 }
 
 /**

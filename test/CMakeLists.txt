@@ -376,3 +376,20 @@ objc_test(foundation_027
     foundation_027/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# for...in loops over arrays and maps.
+objc_test(foundation_028
+    foundation_028/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Adding or removing objects in a for...in loop panics.
+foreach(_case array_append array_remove array_remove_only map_add map_remove
+              map_remove_only map_remove_rest)
+    objc_panic_test(foundation_029_${_case}
+        "Collection changed while it was being enumerated"
+        foundation_029/main.m
+        DEFINITIONS CASE_${_case}
+        LIBRARIES picofuse-objc-foundation
+    )
+endforeach()
