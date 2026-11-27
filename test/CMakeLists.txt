@@ -399,3 +399,9 @@ objc_test(foundation_030
     foundation_030/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Splitting strings by a separator, and into words.
+objc_test(foundation_031
+    foundation_031/main.m
+    LIBRARIES picofuse-objc-foundation
+)
