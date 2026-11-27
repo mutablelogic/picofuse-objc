@@ -5,7 +5,6 @@
 #include <test/test.h>
 
 #ifndef SYSTEM_NAME_PICO
-#include <stdio.h>
 #include <unistd.h>
 #endif
 
@@ -36,9 +35,10 @@ int debug_in_release(int *evaluated);
 // Standard output, in a pipe, while it's captured
 static int saved = -1, fds[2];
 
-// picofuse writes to the standard output of C, which is flushed before it's swapped
+// picofuse flushes what it prints (mutablelogic/picofuse#46), so nothing
+// printed before is left to arrive in the pipe, and nothing in the pipe is
+// left behind
 static void capture(void) {
-  fflush(stdout);
   test_assert(pipe(fds) == 0);
   saved = dup(1);
   test_assert(saved >= 0 && dup2(fds[1], 1) == 1);
@@ -46,7 +46,6 @@ static void capture(void) {
 
 // Returns what was written, as a string
 static NXString *captured(void) {
-  fflush(stdout);
   test_assert(dup2(saved, 1) == 1 && close(saved) == 0 && close(fds[1]) == 0);
   NXMutableString *string = [NXMutableString string];
   char buffer[257];
