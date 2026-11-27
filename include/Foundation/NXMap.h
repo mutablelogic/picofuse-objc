@@ -20,6 +20,10 @@
  * The keys and objects are kept in a table in memory from the map's zone, which is twice
  * as big when it would be three-quarters full. The order of keys isn't defined.
  *
+ * A for...in loop goes through the keys. Adding or removing keys in the loop panics,
+ * unless it then stops with break, but setting the object for a key which is there
+ * doesn't.
+ *
  * A map shouldn't be changed by one thread while another uses it.
  *
  * \headerfile NXMap.h Foundation/Foundation.h
@@ -30,6 +34,7 @@
   size_t _count;    ///< The number of keys
   size_t _capacity; ///< The size of the table, which is a power of two, or zero
   unsigned _shift;  ///< The bits of a hash which aren't used for the size
+  unsigned long _mutations; ///< Counts keys added and removed, for for...in loops
 }
 
 /**

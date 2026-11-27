@@ -1,6 +1,8 @@
+#include "NXFastEnumeration+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
 #include <Foundation/Foundation.h>
+#include <runtime/gcc/runtime.h>
 #include <picofuse/sys.h>
 #include <string.h>
 
@@ -132,6 +134,7 @@ static size_t capacity_for(size_t count) {
   entries[i].key = copy;
   entries[i].object = [object retain];
   _count++;
+  _mutations++;
   return YES;
 }
 
@@ -176,6 +179,33 @@ static size_t capacity_for(size_t count) {
     }
   }
   return objects;
+}
+
+// Copies the keys into objects a batch at a time, from the slot after the last batch's,
+// which is kept in the state. The keys move if the table changes, so changes are
+// counted. The loop checks the count before each key, but not after the last of a
+// batch, so that's checked here against the count when the loop started, kept in the
+// state.
+- (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
+                                     objects:(id *)objects
+                                       count:(unsigned long)count {
+  if (state->state == 0) {
+    state->extra[0] = _mutations;
+  } else if (state->extra[0] != _mutations) {
+    objc_enumerationMutation(self);
+  }
+  entry_t *entries = _entries;
+  size_t i = (size_t)state->state;
+  unsigned long n = 0;
+  for (; i < _capacity && n < count; i++) {
+    if (entries[i].key != nil) {
+      objects[n++] = entries[i].key;
+    }
+  }
+  state->state = (unsigned long)i;
+  state->itemsPtr = objects;
+  state->mutationsPtr = &_mutations;
+  return n;
 }
 
 - (BOOL)isEqual:(id)anObject {
@@ -276,6 +306,7 @@ static size_t capacity_for(size_t count) {
   _entries = entries;
   _capacity = capacity;
   _shift = shift;
+  _mutations++; // the keys have moved
   return YES;
 }
 
@@ -299,6 +330,7 @@ static size_t capacity_for(size_t count) {
   entries[hole].key = nil;
   entries[hole].object = nil;
   _count--;
+  _mutations++;
   [removed.key release];
   [removed.object release];
 }

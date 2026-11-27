@@ -234,6 +234,16 @@ BOOL class_respondsToSelector(Class cls, SEL sel);
 IMP objc_msg_lookup(id receiver, SEL selector);
 
 /**
+ * @brief Panics, as a collection changed while a for...in loop went through it.
+ * @ingroup objc
+ * @param object The collection.
+ *
+ * The compiler calls this, when the count of changes which the collection gave
+ * the loop isn't what it was.
+ */
+void objc_enumerationMutation(id object);
+
+/**
  * @brief Returns the name of a selector.
  * @ingroup objc
  * @param sel The selector to inspect.
