@@ -55,6 +55,7 @@ if(NOT PICOFUSE_TARGET)
 endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PICOFUSE_SYS REQUIRED IMPORTED_TARGET picofuse-sys)
+pkg_check_modules(PICOFUSE_HID REQUIRED IMPORTED_TARGET picofuse-hid)
 
 # Link Pico programs with the Arm GNU toolchain, as picofuse is compiled against
 # its C library and its linker flags are for GNU ld. LLVM only compiles.

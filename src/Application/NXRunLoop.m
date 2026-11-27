@@ -1,4 +1,5 @@
 #include "NXMethod+Private.h"
+#include "NXRunLoop+Private.h"
 #include <Application/Application.h>
 #include <picofuse/sys.h>
 #include <runtime/gcc/runtime.h>
@@ -26,6 +27,16 @@ static NXRunLoop *running_loop(void) {
 // Set once worker 0 has told the delegate the run loop has started: the other workers
 // wait for it before they dispatch events
 static uint32_t started = 0;
+
+// The running run loop's event handler and poll function, set before it runs
+static NXRunLoopEventHandler running_handler = NULL;
+static NXRunLoopPoll running_poll = NULL;
+
+static void on_poll(void) {
+  if (running_poll != NULL) {
+    running_poll();
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // AN EVENT WHICH SENDS A MESSAGE
@@ -116,6 +127,10 @@ static void on_event(sys_event_t event) {
   if (pool == nil) {
     sys_panicf("-[NXRunLoop runWithWorkers:] out of memory for an autorelease pool");
   }
+  if (running_handler != NULL && running_handler(event)) {
+    [pool release];
+    return;
+  }
   [(id<NXEvent>)event dispatch];
 
   // Released before the pool, as its dealloc, or its target's, may autorelease
@@ -173,19 +188,26 @@ static void on_event(sys_event_t event) {
   BOOL ran = _queue != NULL;
   if (ran) {
     __atomic_store_n(&started, 0, __ATOMIC_RELEASE);
-    status = (int)sys_runloop_run(workers, _queue, on_start, on_event, NULL, NULL);
-    sys_event_queue_deinit(_queue);
-    _queue = NULL;
+    running_handler = (NXRunLoopEventHandler)_handler;
+    running_poll = (NXRunLoopPoll)_poll;
+    status = (int)sys_runloop_run(workers, _queue, on_start, on_event,
+                                  _poll != NULL ? on_poll : NULL, NULL);
+
   }
   @synchronized([NXRunLoop class]) {
     __atomic_store_n(&running, NULL, __ATOMIC_RELEASE);
   }
 
-  // Every worker has finished, so the delegate is told here
+  // Every worker has finished, so the delegate is told here, while the queue is still
+  // there for what it stops, such as HID, which pushes to it
   if (ran) {
     NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
     tell(_delegate, @selector(runLoopWillStop:), self);
     [pool release];
+    running_handler = NULL;
+    running_poll = NULL;
+    sys_event_queue_deinit(_queue);
+    _queue = NULL;
   }
   [self release];
   return status;
@@ -250,6 +272,19 @@ static void on_event(sys_event_t event) {
   BOOL posted = event != nil && [self post:event];
   [event release];
   return posted;
+}
+
+@end
+
+@implementation NXRunLoop (Private)
+
+- (sys_event_queue_t *)queue {
+  return _queue;
+}
+
+- (void)setEventHandler:(NXRunLoopEventHandler)handler poll:(NXRunLoopPoll)poll {
+  _handler = (void *)handler;
+  _poll = (void *)poll;
 }
 
 @end
