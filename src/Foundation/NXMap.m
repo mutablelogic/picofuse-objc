@@ -62,6 +62,20 @@ static size_t capacity_for(size_t count) {
   return map;
 }
 
++ (id)mapWithObjects:(NXArray *)objects forKeys:(NXArray *)keys {
+  size_t count = [objects count];
+  if ([keys count] != count) {
+    return nil;
+  }
+  NXMap *map = [self mapWithCapacity:count];
+  for (size_t i = 0; map != nil && i < count; i++) {
+    if (![map setObject:[objects objectAtIndex:i] forKey:[keys objectAtIndex:i]]) {
+      return nil;
+    }
+  }
+  return map;
+}
+
 - (id)initWithCapacity:(size_t)capacity {
   self = [super init];
   if (self != nil && capacity > 0) {

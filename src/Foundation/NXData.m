@@ -30,6 +30,10 @@
   return [[[self alloc] initWithBytes:bytes length:length] autorelease];
 }
 
++ (id)dataWithString:(NXString *)string {
+  return [self dataWithBytes:[string cStr] length:[string length]];
+}
+
 + (id)dataWithBase64String:(NXString *)string {
   return [[[self alloc] initWithBase64String:string] autorelease];
 }

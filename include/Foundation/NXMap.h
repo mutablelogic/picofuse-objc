@@ -57,6 +57,17 @@
 + (id)mapWithKeysAndObjects:(id)firstKey, ...;
 
 /**
+ * @brief Returns a map of keys and objects from two arrays: the first key is for the
+ * first object, the second for the second, and so on.
+ * @param objects The objects.
+ * @param keys The keys, as many as there are objects. A key which is in the array more
+ * than once is for the last of its objects.
+ * @return The map, or nil if the arrays have different counts, or there isn't enough
+ * memory.
+ */
++ (id)mapWithObjects:(NXArray *)objects forKeys:(NXArray *)keys;
+
+/**
  * @brief Initializes an empty map with room for a number of keys.
  */
 - (id)initWithCapacity:(size_t)capacity;
