@@ -303,7 +303,9 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 // The objects are one after another, so they're given to the loop as they are, in one
-// batch. They move if objects are added or removed, so those are counted.
+// batch. They move if objects are added or removed, so those are counted. The loop
+// checks the count before each object, but not after the last, so that's checked here
+// against the count when the loop started, kept in the state.
 - (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
                                      objects:(id *)objects
                                        count:(unsigned long)count {
@@ -311,9 +313,13 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   (void)count;
   state->mutationsPtr = &_mutations;
   if (state->state != 0) {
+    if (state->extra[0] != _mutations) {
+      objc_enumerationMutation(self);
+    }
     return 0;
   }
   state->state = 1;
+  state->extra[0] = _mutations;
   state->itemsPtr = _objects;
   return (unsigned long)_count;
 }

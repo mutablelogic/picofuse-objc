@@ -25,11 +25,32 @@ test_main(0) {
     (void)object;
     [array sortUsingSelector:@selector(compare:)];
   }
+#elif defined(CASE_array_remove_only)
+  // The only object, when the loop doesn't check again before it ends
+  NXArray *one = [NXArray arrayWithObjects:@"a", nil];
+  for (id object in one) {
+    [one removeObject:object];
+  }
 #elif defined(CASE_map_add)
   int64_t i = 100;
   for (id key in map) {
     (void)key;
     [map setObject:@"x" forKey:[NXNumber numberWithInt64:i++]];
+  }
+#elif defined(CASE_map_remove_only)
+  NXMap *one = [NXMap map];
+  [one setObject:@"a" forKey:@"a"];
+  for (id key in one) {
+    [one removeObjectForKey:key];
+  }
+#elif defined(CASE_map_remove_rest)
+  // Every key, in the last of the first batch
+  size_t n = 0;
+  for (id key in map) {
+    (void)key;
+    if (++n == [map count]) {
+      [map removeAllObjects];
+    }
   }
 #elif defined(CASE_map_remove)
   for (id key in map) {
