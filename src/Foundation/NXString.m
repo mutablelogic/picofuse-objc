@@ -65,6 +65,15 @@ void NXStringBufferRelease(void) {
 #pragma clang diagnostic pop
 #endif
 
+// Appends a new string of some bytes to an array, or returns NO if there isn't enough
+// memory
+static BOOL append_part(NXArray *parts, const char *bytes, size_t length) {
+  NXString *part = [[NXString alloc] initWithBytes:bytes length:length];
+  BOOL appended = part != nil && [parts appendObject:part];
+  [part release];
+  return appended;
+}
+
 @implementation NXString
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,6 +282,55 @@ void NXStringBufferRelease(void) {
 - (size_t)indexOfSubstring:(NXString *)other {
   ptrdiff_t offset = sys_string_contains([self cStr], [other cStr]);
   return offset < 0 ? NXNotFound : (size_t)offset;
+}
+
+- (NXArray *)componentsSeparatedByString:(NXString *)separator {
+  NXArray *parts = [NXArray array];
+  const char *cStr = [self cStr];
+  size_t length = [self length];
+  size_t separator_length = [separator length];
+  if (parts == nil) {
+    return nil;
+  }
+
+  // Each part up to where the separator is next found
+  size_t start = 0;
+  if (separator_length > 0) {
+    const char *sep = [separator cStr];
+    ptrdiff_t offset;
+    while ((offset = sys_string_contains(cStr + start, sep)) >= 0) {
+      if (!append_part(parts, cStr + start, (size_t)offset)) {
+        return nil;
+      }
+      start += (size_t)offset + separator_length;
+    }
+  }
+  return append_part(parts, cStr + start, length - start) ? parts : nil;
+}
+
+- (NXArray *)componentsSeparatedByWhitespace {
+  NXArray *parts = [NXArray array];
+  const char *word = NULL;
+  const char *p = [self cStr];
+  while (parts != nil && *p != '\0') {
+    rune_t rune;
+    const char *next = sys_rune_next(p, &rune);
+    if (!sys_rune_is_space(rune)) {
+      if (word == NULL) {
+        word = p;
+      }
+    } else if (word != NULL) {
+      if (!append_part(parts, word, (size_t)(p - word))) {
+        return nil;
+      }
+      word = NULL;
+    }
+    p = next;
+  }
+  if (word != NULL && !append_part(parts, word, (size_t)(p - word))) {
+    return nil;
+  }
+  return parts;
 }
 
 @end
