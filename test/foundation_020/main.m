@@ -126,6 +126,10 @@ static void dates(NXZone *zone) {
                    [NXDate dateWithSeconds:10 nanoseconds:2]] == NXComparisonAscending);
   test_assert([[NXDate dateWithSeconds:-1 nanoseconds:999999999] compare:
                    [NXDate dateWithSeconds:0 nanoseconds:0]] == NXComparisonAscending);
+
+  // nil is the current date. Before 1970, as a Pico's clock starts there at boot.
+  test_assert([[NXDate dateWithSeconds:-1 nanoseconds:0] compare:nil] == NXComparisonAscending);
+  test_assert([[NXDate dateWithYear:9999 month:1 day:1] compare:nil] == NXComparisonDescending);
   test_assert(![date isEqual:later] && ![date isEqual:nil]);
   test_assert(![date isEqual:@"1970-01-01T00:00:10Z"]);
   test_assert([date isEqual:date]);
