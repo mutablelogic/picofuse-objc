@@ -37,6 +37,7 @@
 // Protocols
 #include "NXFastEnumeration.h"
 #include "NXCollection.h"
+#include "NXLocking.h"
 
 // Class Definitions
 #include "NXObject.h"
@@ -53,6 +54,10 @@
 #include "NXStream.h"
 #include "NXScanner.h"
 #include "NXThread.h"
+#include "NXLock.h"
+#include "NXCondition.h"
+#include "NXWaitGroup.h"
+#include "NXAtomic.h"
 #include "NXZone.h"
 
 #endif // __OBJC__
