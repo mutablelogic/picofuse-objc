@@ -176,7 +176,8 @@ typedef enum {
 - (NXDuration)durationSinceDate:(NXDate *)other;
 
 /**
- * @brief Compares the moments of two dates. The other date can't be nil.
+ * @brief Compares the moments of two dates. If the other is nil, it's the current
+ * date.
  * @return NXComparisonAscending if this is earlier, NXComparisonSame if they're at the
  * same moment, or NXComparisonDescending if this is later.
  */
