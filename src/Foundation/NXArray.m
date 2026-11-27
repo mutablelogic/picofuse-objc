@@ -1,3 +1,4 @@
+#include "NXChange+Private.h"
 #include "NXFastEnumeration+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
@@ -115,6 +116,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 // PROPERTIES
 
 - (size_t)count {
+  NXReadCheck(&_changing, __func__);
   return _count;
 }
 
@@ -123,14 +125,17 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (id)objectAtIndex:(size_t)index {
+  NXReadCheck(&_changing, __func__);
   return index < _count ? _objects[index] : nil;
 }
 
 - (id)firstObject {
+  NXReadCheck(&_changing, __func__);
   return _count > 0 ? _objects[0] : nil;
 }
 
 - (id)lastObject {
+  NXReadCheck(&_changing, __func__);
   return _count > 0 ? _objects[_count - 1] : nil;
 }
 
@@ -138,6 +143,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 // PUBLIC METHODS
 
 - (size_t)indexOfObject:(id)object {
+  NXReadCheck(&_changing, __func__);
   if (object != nil) {
     for (size_t i = 0; i < _count; i++) {
       if (_objects[i] == object || [_objects[i] isEqual:object]) {
@@ -157,17 +163,17 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (BOOL)insertObject:(id)object atIndex:(size_t)index {
+  NXChangeBegin(&_changing, __func__);
   if (object == nil || index > _count) {
+    NXChangeEnd(&_changing);
     return NO;
   }
 
   // Twice the room, when there's none left
   if (_count == _capacity) {
-    if (_capacity > SIZE_MAX / 2) {
-      return NO;
-    }
     size_t capacity = _capacity < CAPACITY_MIN ? CAPACITY_MIN : _capacity * 2;
-    if (![self reserve:capacity]) {
+    if (_capacity > SIZE_MAX / 2 || ![self reserve:capacity]) {
+      NXChangeEnd(&_changing);
       return NO;
     }
   }
@@ -175,11 +181,14 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   _objects[index] = [object retain];
   _count++;
   _mutations++;
+  NXChangeEnd(&_changing);
   return YES;
 }
 
 - (BOOL)replaceObjectAtIndex:(size_t)index withObject:(id)object {
+  NXChangeBegin(&_changing, __func__);
   if (object == nil || index >= _count) {
+    NXChangeEnd(&_changing);
     return NO;
   }
 
@@ -187,12 +196,15 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   // uses the array, and the new one is retained first, in case it's the same
   id old = _objects[index];
   _objects[index] = [object retain];
+  NXChangeEnd(&_changing);
   [old release];
   return YES;
 }
 
 - (BOOL)removeObjectAtIndex:(size_t)index {
+  NXChangeBegin(&_changing, __func__);
   if (index >= _count) {
+    NXChangeEnd(&_changing);
     return NO;
   }
 
@@ -201,6 +213,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   _count--;
   _mutations++;
   memmove(&_objects[index], &_objects[index + 1], (_count - index) * sizeof(id));
+  NXChangeEnd(&_changing);
   [object release];
   return YES;
 }
@@ -234,6 +247,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (uintptr_t)hash {
+  NXReadCheck(&_changing, __func__);
   uintptr_t hash = _count;
   for (size_t i = 0; i < _count; i++) {
     hash = NXHashCombine(hash, [_objects[i] hash]);
@@ -242,6 +256,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (id)copy {
+  NXReadCheck(&_changing, __func__);
   NXArray *copy = [[NXArray allocInZone:[self zone]] initWithCapacity:_count];
   for (size_t i = 0; copy != nil && i < _count; i++) {
     if (![copy appendObject:_objects[i]]) {
@@ -253,6 +268,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (NXArray *)subarrayFromIndex:(size_t)index count:(size_t)count {
+  NXReadCheck(&_changing, __func__);
   if (index > _count || count > _count - index) {
     return nil;
   }
@@ -266,6 +282,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (NXString *)componentsJoinedByString:(NXString *)separator {
+  NXReadCheck(&_changing, __func__);
   NXMutableString *string = [NXMutableString string];
   for (size_t i = 0; string != nil && i < _count; i++) {
     if (i > 0 && separator != nil && ![string appendString:separator]) {
@@ -286,20 +303,24 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   if (comparator == NULL) {
     return NO;
   }
-  if (_count < 2) {
-    return YES;
-  }
 
-  // Room for the first half of the objects, while they're merged with the second
-  size_t half = _count / 2;
-  id *buffer = NXZoneAlloc([self zone], half * sizeof(id));
-  if (buffer == NULL) {
-    return NO;
+  // The comparator can read the array, but not change it
+  NXChangeBegin(&_changing, __func__);
+  BOOL sorted = YES;
+  if (_count >= 2) {
+    // Room for the first half of the objects, while they're merged with the second
+    size_t half = _count / 2;
+    id *buffer = NXZoneAlloc([self zone], half * sizeof(id));
+    if (buffer == NULL) {
+      sorted = NO;
+    } else {
+      sort(_objects, buffer, _count, comparator);
+      NXZoneFree([self zone], buffer);
+      _mutations++; // the objects have moved
+    }
   }
-  sort(_objects, buffer, _count, comparator);
-  NXZoneFree([self zone], buffer);
-  _mutations++; // the objects have moved
-  return YES;
+  NXChangeEnd(&_changing);
+  return sorted;
 }
 
 // The objects are one after another, so they're given to the loop as they are, in one
@@ -309,6 +330,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 - (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
                                      objects:(id *)objects
                                        count:(unsigned long)count {
+  NXReadCheck(&_changing, __func__);
   (void)objects;
   (void)count;
   state->mutationsPtr = &_mutations;
@@ -328,6 +350,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
   if (anObject == self) {
     return YES;
   }
+  NXReadCheck(&_changing, __func__);
   if (anObject == nil || !object_isKindOfClass(anObject, [NXArray class])) {
     return NO;
   }
@@ -345,6 +368,7 @@ static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
 }
 
 - (NXString *)description {
+  NXReadCheck(&_changing, __func__);
   NXMutableString *description = [NXMutableString stringWithCString:"["];
   for (size_t i = 0; description != nil && i < _count; i++) {
     if (![description appendFormat:i == 0 ? @"%@" : @", %@", _objects[i]]) {
