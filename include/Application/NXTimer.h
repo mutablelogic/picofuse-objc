@@ -13,7 +13,8 @@
  *
  * It's a timer of picofuse's HID, which there's a limited number of. Once scheduled, it
  * stays attached to the application, and retained by it, until it's invalidated, or has
- * fired once if it doesn't repeat. The message is sent on any of the run loop's workers,
+ * fired once if it doesn't repeat. If there's no HID timer left when it starts, it's
+ * invalidated. The message is sent on any of the run loop's workers,
  * so if the run loop is busy, firings of a repeating timer can be sent at the same time
  * on different workers.
  *
@@ -26,6 +27,7 @@
   id _target;           ///< Retained
   SEL _selector;        ///< Has the timer as its argument
   void *_device;        ///< The HID device while it's attached, or NULL
+  uintptr_t _attachment; ///< Which attachment it's in, which its HID events carry
   BOOL _valid;          ///< NO once it's been invalidated
 }
 
@@ -59,7 +61,8 @@
 - (void)invalidate;
 
 /**
- * @brief Sends the message now, on the calling thread, whether or not it's scheduled.
+ * @brief Sends the message now, on the calling thread, whether or not it's scheduled, as
+ * long as it's valid.
  */
 - (void)fire;
 

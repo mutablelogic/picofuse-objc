@@ -20,7 +20,14 @@
 // operations on an object pointer.
 static void *running = NULL;
 
+// Set while the run which is in progress tears down: it's still reserved, so another
+// can't start, but it's no longer running, so nothing can be posted to it
+static uint32_t stopping = 0;
+
 static NXRunLoop *running_loop(void) {
+  if (__atomic_load_n(&stopping, __ATOMIC_ACQUIRE) != 0) {
+    return nil;
+  }
   return (NXRunLoop *)__atomic_load_n(&running, __ATOMIC_ACQUIRE);
 }
 
@@ -194,8 +201,9 @@ static void on_event(sys_event_t event) {
                                   _poll != NULL ? on_poll : NULL, NULL);
 
   }
+  // It's stopping: nothing can be posted, but another run can't start until it's torn down
   @synchronized([NXRunLoop class]) {
-    __atomic_store_n(&running, NULL, __ATOMIC_RELEASE);
+    __atomic_store_n(&stopping, 1, __ATOMIC_RELEASE);
   }
 
   // Every worker has finished, so the delegate is told here, while the queue is still
@@ -209,6 +217,10 @@ static void on_event(sys_event_t event) {
     sys_event_queue_deinit(_queue);
     _queue = NULL;
   }
+  @synchronized([NXRunLoop class]) {
+    __atomic_store_n(&running, NULL, __ATOMIC_RELEASE);
+    __atomic_store_n(&stopping, 0, __ATOMIC_RELEASE);
+  }
   [self release];
   return status;
 }
@@ -219,7 +231,7 @@ static void on_event(sys_event_t event) {
 
 - (void)shutdownWithStatus:(int)status {
   @synchronized([NXRunLoop class]) {
-    if (running == (void *)self) {
+    if (running_loop() == self) {
       sys_runloop_shutdown((uint32_t)status);
     }
   }
@@ -232,7 +244,7 @@ static void on_event(sys_event_t event) {
   BOOL posted = NO;
   [(NXObject *)event retain];
   @synchronized([NXRunLoop class]) {
-    posted = running == (void *)self && sys_runloop_post(event);
+    posted = running_loop() == self && sys_runloop_post(event);
   }
   if (!posted) {
     [(NXObject *)event release];

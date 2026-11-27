@@ -4,7 +4,14 @@
 #include <picofuse/hid.h>
 #include <runtime/gcc/runtime.h>
 
+// clang warns that atomics aren't lock-free on an RP2040, where pico-sdk implements
+// them with a spin lock
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Watomic-alignment"
+#endif
+
 @interface NXTimer (Private) <NXEventSourcePrivate>
+- (void)send;
 @end
 
 @implementation NXTimer
@@ -37,17 +44,20 @@
 }
 
 - (BOOL)schedule {
-  return _valid && [[NXApplication sharedApplication] attachEventSource:self];
+  return [self isValid] && [[NXApplication sharedApplication] attachEventSource:self];
 }
 
 - (void)invalidate {
-  _valid = NO;
+  @synchronized(self) {
+    _valid = NO;
+  }
   [[NXApplication sharedApplication] detachEventSource:self];
 }
 
 - (void)fire {
-  void (*imp)(void) = (void (*)(void))objc_msg_lookup(_target, _selector);
-  ((void (*)(id, SEL, id))imp)(_target, _selector, self);
+  if ([self isValid]) {
+    [self send];
+  }
 }
 
 - (NXDuration)interval {
@@ -59,45 +69,79 @@
 }
 
 - (BOOL)isValid {
-  return _valid;
+  BOOL valid;
+  @synchronized(self) {
+    valid = _valid;
+  }
+  return valid;
 }
 
 @end
 
+// Numbers each attachment, so ticks from one before can't be taken for this one's
+static uintptr_t attachments = 0;
+
 @implementation NXTimer (Private)
 
-// A HID timer, whose events have this timer as their userdata
+- (void)send {
+  void (*imp)(void) = (void (*)(void))objc_msg_lookup(_target, _selector);
+  ((void (*)(id, SEL, id))imp)(_target, _selector, self);
+}
+
+// A HID timer which always repeats, as a one-shot HID timer can only be released by
+// freeing its event: a one-shot timer is deregistered once it's fired instead. Its events
+// carry the number of this attachment. If there's no HID timer left, it's invalidated.
 - (BOOL)attachToHID:(hid_t *)hid {
-  if (!_valid || _device != NULL) {
-    return NO;
+  BOOL attached = NO;
+  @synchronized(self) {
+    if (_valid && _device == NULL) {
+      _attachment = __atomic_add_fetch(&attachments, 1, __ATOMIC_RELAXED);
+      NXDuration ms = (_interval - 1) / NXMillisecond + 1;
+      _device = hid_register_timer(hid, 0, ms > UINT32_MAX ? UINT32_MAX : (uint32_t)ms, true,
+                                   (void *)_attachment);
+      attached = _device != NULL;
+      if (!attached) {
+        _valid = NO;
+      }
+    }
   }
-  NXDuration ms = (_interval - 1) / NXMillisecond + 1;
-  _device = hid_register_timer(hid, 0, ms > UINT32_MAX ? UINT32_MAX : (uint32_t)ms, _repeats,
-                               self);
-  return _device != NULL;
+  return attached;
 }
 
 - (void)detachFromHID:(hid_t *)hid {
-  if (_device != NULL) {
-    hid_deregister(hid, _device);
-    _device = NULL;
+  @synchronized(self) {
+    if (_device != NULL) {
+      hid_deregister(hid, _device);
+      _device = NULL;
+    }
   }
 }
 
 - (BOOL)ownsEvent:(hid_event_t *)event {
-  return _device != NULL && event->type == hid_event_type_timer &&
-         event->device == _device && event->data.timer.userdata == self;
+  BOOL owns;
+  @synchronized(self) {
+    owns = _device != NULL && event->type == hid_event_type_timer &&
+           event->device == _device && event->data.timer.userdata == (void *)_attachment;
+  }
+  return owns;
 }
 
-// Sends the message, and if it doesn't repeat, it's done: HID deregisters its device when
-// the event is freed, so it's forgotten rather than deregistered again
+// Sends the message if it's still valid. If it doesn't repeat, it's done, and detached.
 - (void)handleEvent:(hid_event_t *)event {
   (void)event;
+  BOOL send = NO, done = NO;
+  @synchronized(self) {
+    send = _valid;
+    if (_valid && !_repeats) {
+      _valid = NO;
+      done = YES;
+    }
+  }
   [self retain];
-  [self fire];
-  if (!_repeats) {
-    _valid = NO;
-    _device = NULL;
+  if (send) {
+    [self send];
+  }
+  if (done) {
     [[NXApplication sharedApplication] detachEventSource:self];
   }
   [self release];

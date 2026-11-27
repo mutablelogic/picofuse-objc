@@ -13,6 +13,8 @@
   NXTimer *repeating;
   NXTimer *oneShot;
   NXTimer *invalidated;
+  NXArray *many;       // more timers than HID has
+  NXAtomic *extra;     // firings of those which were invalidated as it started
 }
 @end
 
@@ -24,6 +26,7 @@
   never = [NXAtomic new];
   late = [NXAtomic new];
   posted = [NXAtomic new];
+  extra = [NXAtomic new];
   return self;
 }
 - (void)dealloc {
@@ -32,6 +35,8 @@
   [never release];
   [late release];
   [posted release];
+  [extra release];
+  [many release];
   [super dealloc];
 }
 - (void)tick:(NXTimer *)timer {
@@ -56,6 +61,11 @@
 - (void)event {
   [posted increment];
 }
+- (void)spare:(NXTimer *)timer {
+  // Only those which got a HID timer fire
+  test_assert([timer isValid]);
+  [extra increment];
+}
 - (void)check:(NXTimer *)timer {
   (void)timer;
   [[[NXApplication sharedApplication] runLoop] perform:@selector(event) target:self];
@@ -67,6 +77,17 @@
 }
 - (void)applicationDidStart:(NXApplication *)application {
   (void)application;
+
+  // More timers than HID has, on the first run: those without a HID timer were
+  // invalidated, and detached
+  size_t valid = 0;
+  for (NXTimer *timer in many) {
+    if ([timer isValid]) {
+      valid++;
+      [timer invalidate];
+    }
+  }
+  test_assert(many == nil || valid < [many count]);
   // Scheduled while it runs, which starts straight away
   NXTimer *timer = [NXTimer timerWithInterval:5 * NXMillisecond
                                       repeats:YES
@@ -117,20 +138,43 @@ test_main(0) {
   test_assert(![ticker->invalidated isValid] && ![ticker->invalidated schedule]);
   test_assert([ticker->repeating interval] == 5 * NXMillisecond && [ticker->repeating repeats]);
 
-  // Firing by hand
+  // Firing by hand, but not once invalidated
   [ticker->oneShot fire];
   test_assert([ticker->once unsignedInt32Value] == 1);
   [ticker->once setUnsignedInt32Value:0];
+  [ticker->invalidated fire];
+  test_assert([ticker->never unsignedInt32Value] == 0);
 
+  // Detached and attached again, which is still the same timer
+  [application detachEventSource:ticker->repeating];
+  test_assert([ticker->repeating isValid] && [ticker->repeating schedule]);
+
+  // More than HID has, scheduled last, so the timers above are attached first
+  ticker->many = [[NXArray alloc] init];
+  for (int i = 0; i < 32; i++) {
+    NXTimer *timer = [NXTimer timerWithInterval:NXSecond
+                                        repeats:YES
+                                         target:ticker
+                                       selector:@selector(spare:)];
+    test_assert([timer schedule] && [ticker->many appendObject:timer]);
+  }
+
+  // On one worker, so the counts are exact
+  [application setWorkers:1];
   test_assert([NXApplication run] == 4);
+  test_assert([ticker->extra unsignedInt32Value] == 0);
   test_assert([ticker->repeats unsignedInt32Value] == 5);
   test_assert([ticker->once unsignedInt32Value] == 1 && ![ticker->oneShot isValid]);
   test_assert([ticker->never unsignedInt32Value] == 0);
   test_assert([ticker->late unsignedInt32Value] >= 2 && [ticker->posted unsignedInt32Value] > 0);
 
-  // Again: the late timer is still attached and starts again, the others are done
+  // Again, on every worker: the late timer is still attached and starts again, the
+  // others are done
   [ticker->late setUnsignedInt32Value:0];
   [ticker->repeats setUnsignedInt32Value:5];
+  [ticker->many release];
+  ticker->many = nil;
+  [application setWorkers:0];
   test_assert([NXApplication run] == 4);
   test_assert([ticker->late unsignedInt32Value] >= 2);
   test_assert([ticker->once unsignedInt32Value] == 1 && [ticker->never unsignedInt32Value] == 0);
