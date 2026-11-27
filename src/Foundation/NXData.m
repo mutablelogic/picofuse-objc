@@ -108,9 +108,13 @@
       capacity = capacity > SIZE_MAX / 2 ? _length + length : capacity * 2;
     }
 
-    // The bytes may be this data's own, which may move
-    if (bytes >= (const void *)_bytes && bytes < (const void *)(_bytes + _length)) {
-      size_t offset = (size_t)((const uint8_t *)bytes - _bytes);
+    // The bytes may be this data's own, which may move. Compare addresses
+    // as integers, since relational comparisons between pointers to
+    // different objects are undefined
+    uintptr_t start = (uintptr_t)_bytes;
+    uintptr_t at = (uintptr_t)bytes;
+    if (_bytes != NULL && at >= start && at - start < _length) {
+      size_t offset = (size_t)(at - start);
       if (![self reserve:capacity]) {
         return NO;
       }
