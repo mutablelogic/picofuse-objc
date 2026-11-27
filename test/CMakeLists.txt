@@ -400,6 +400,12 @@ objc_test(foundation_030
     LIBRARIES picofuse-objc-foundation
 )
 
+# Splitting strings by a separator, and into words.
+objc_test(foundation_031
+    foundation_031/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
 # Locks, conditions, wait groups and atomics, across threads.
 objc_test(foundation_032
     foundation_032/main.m
