@@ -6,6 +6,8 @@
 #include <stdarg.h>
 #include <stddef.h>
 
+@class NXArray;
+
 /**
  * @brief A string of UTF-8 text.
  * @ingroup Foundation
@@ -168,6 +170,25 @@
  * one, or NXNotFound. It's zero for nil or an empty string.
  */
 - (size_t)indexOfSubstring:(NXString *)other;
+
+/**
+ * @brief Returns the parts of the string between a separator, as new strings.
+ * @param separator The separator, which can be more than one character.
+ * @return The parts, in order, including empty ones: "a,,b" is "a", "" and "b", and an
+ * empty string is one empty part. If the separator isn't found, or is nil or empty,
+ * it's the string on its own. Joining the parts with componentsJoinedByString: gives
+ * the string back. Returns nil if there isn't enough memory.
+ */
+- (NXArray *)componentsSeparatedByString:(NXString *)separator;
+
+/**
+ * @brief Returns the words of the string, which are between runs of whitespace, as new
+ * strings.
+ * @return The words, in order, without empty ones: "  a  b " is "a" and "b", and a
+ * string of only whitespace has none. Whitespace is Unicode's, as trimWhitespace
+ * removes. Returns nil if there isn't enough memory.
+ */
+- (NXArray *)componentsSeparatedByWhitespace;
 
 /**
  * @brief Returns the string itself.
