@@ -42,12 +42,47 @@ static NXAtomic *inside; // set when the other thread is in the middle of a chan
 }
 @end
 
+// Marks a string or data as being changed by the calling thread, as if it were in the
+// middle of a change, which is how another thread's change is held open
+void NXChangeBegin(uintptr_t *changing, const char *method);
+
+@interface NXMutableString (Test)
+- (void)markChangedByThisThread;
+@end
+
+@interface NXData (Test)
+- (void)markChangedByThisThread;
+@end
+
+@implementation NXMutableString (Test)
+- (void)markChangedByThisThread {
+  NXChangeBegin(&_changing, "test");
+}
+@end
+
+@implementation NXData (Test)
+- (void)markChangedByThisThread {
+  NXChangeBegin(&_changing, "test");
+}
+@end
+
+static NXMutableString *string;
+static NXData *data;
+
 @interface Worker : NXObject
 @end
 
 @implementation Worker
 + (void)sort {
   [array sortUsingSelector:@selector(compare:)];
+}
++ (void)markString {
+  [string markChangedByThisThread];
+  [inside setUnsignedInt32Value:1];
+}
++ (void)markData {
+  [data markChangedByThisThread];
+  [inside setUnsignedInt32Value:1];
 }
 + (void)set {
   Blocker *key = [[Blocker alloc] init];
@@ -82,6 +117,22 @@ test_main(0) {
   a->nested = YES;
   b->nested = YES;
   [array sortUsingSelector:@selector(compare:)];
+#elif defined(CASE_string_two_threads)
+  string = [[NXMutableString alloc] init];
+  change_in_thread(@selector(markString));
+  [string appendCString:"z"];
+#elif defined(CASE_string_read)
+  string = [[NXMutableString alloc] init];
+  change_in_thread(@selector(markString));
+  (void)[string length];
+#elif defined(CASE_data_two_threads)
+  data = [[NXData alloc] init];
+  change_in_thread(@selector(markData));
+  [data appendBytes:"z" length:1];
+#elif defined(CASE_data_read)
+  data = [[NXData alloc] init];
+  change_in_thread(@selector(markData));
+  (void)[data length];
 #elif defined(CASE_map_two_threads)
   change_in_thread(@selector(set));
   [map setObject:@"z" forKey:@"z"];

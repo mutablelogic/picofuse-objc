@@ -23,6 +23,7 @@
   uint8_t *_bytes;  ///< The bytes, or NULL if there's no room yet
   size_t _length;   ///< The number of bytes
   size_t _capacity; ///< The number of bytes there's room for
+  uintptr_t _changing; ///< The thread which is changing it, or zero
 }
 
 /**

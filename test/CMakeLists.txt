@@ -430,8 +430,8 @@ objc_test(foundation_034
     LIBRARIES picofuse-objc-foundation
 )
 
-# Arrays and maps changed by two threads at once, read while another thread changes
-# them, or changed in the middle of a change, panic.
+# Arrays, maps, mutable strings and data changed by two threads at once, read while
+# another thread changes them, or changed in the middle of a change, panic.
 objc_panic_test(foundation_035_array_two_threads "-.NXArray insertObject:atIndex:. changed by two threads at once"
     foundation_035/main.m
     DEFINITIONS CASE_array_two_threads
@@ -460,5 +460,25 @@ objc_panic_test(foundation_035_map_read "-.NXMap objectForKey:. used while anoth
 objc_panic_test(foundation_035_map_nested "-.NXMap removeObjectForKey:. changed while it was being changed"
     foundation_035/main.m
     DEFINITIONS CASE_map_nested
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_string_two_threads "-.NXMutableString appendCString:. changed by two threads at once"
+    foundation_035/main.m
+    DEFINITIONS CASE_string_two_threads
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_string_read "-.NXMutableString length. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_string_read
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_data_two_threads "-.NXData appendBytes:length:. changed by two threads at once"
+    foundation_035/main.m
+    DEFINITIONS CASE_data_two_threads
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_data_read "-.NXData length. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_data_read
     LIBRARIES picofuse-objc-foundation
 )

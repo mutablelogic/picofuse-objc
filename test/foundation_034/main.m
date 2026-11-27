@@ -109,6 +109,16 @@ test_main(0) {
   [map removeAllObjects];
   [array removeAllObjects];
 
+  // Strings and data which are appended to themselves, and formatted with themselves
+  NXMutableString *string = [NXMutableString stringWithCString:"ab"];
+  test_assert([string appendString:string]);
+  test_assert([string appendFormat:@"%@-%@", string, string]);
+  test_assert_strequal([string cStr], "abababab-abab");
+  test_assert([string trimPrefix:[NXMutableString stringWithCString:"ab"]]);
+  NXData *data = [NXData dataWithBytes:"xy" length:2];
+  test_assert([data appendData:data] && [data length] == 4);
+  test_assert([data appendBytes:[data bytes] length:[data length]] && [data length] == 8);
+
   // Threads which take turns with a lock
   lock = [[NXLock alloc] init];
   group = [[NXWaitGroup alloc] init];
