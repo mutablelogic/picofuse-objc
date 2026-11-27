@@ -117,6 +117,17 @@ typedef bool BOOL;
 Class objc_lookupClass(const char *name);
 
 /**
+ * @brief Returns the classes which are registered.
+ * @ingroup objc
+ * @param classes A buffer for the classes, or NULL to only count them.
+ * @param count The number of classes the buffer has room for.
+ * @return The number of classes, which may be more than count, in which case only
+ * count of them are in the buffer. Each class is resolved, as when it's looked up by
+ * name.
+ */
+size_t objc_getClassList(Class *classes, size_t count);
+
+/**
  * @brief Returns the name of a class.
  * @ingroup objc
  * @param cls The class to inspect.

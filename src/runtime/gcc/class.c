@@ -174,6 +174,21 @@ Class objc_get_class(const char *name) {
 }
 
 /**
+ * Returns the number of classes, and fills a buffer with as many as fit, each
+ * resolved, so its superclass is a class and not a name.
+ */
+size_t objc_getClassList(Class *classes, size_t count) {
+  size_t n = 0;
+  for (int i = 0; i < OBJC_CLASS_CAPACITY && class_table[i] != NULL; i++) {
+    if (classes != NULL && n < count) {
+      classes[n] = objc_lookup_class(class_table[i]->name);
+    }
+    n++;
+  }
+  return n;
+}
+
+/**
  * Looks up the class with the specified name. Returns Nil if the class is not
  * found.
  */
