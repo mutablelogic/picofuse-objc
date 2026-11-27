@@ -35,6 +35,15 @@ static BOOL ready = NO, replied = NO;  // only changed under the condition
   }
   [group done];
 }
++ (void)countWithSwap {
+  for (int i = 0; i < TIMES; i++) {
+    uint32_t value;
+    do {
+      value = [atomic unsignedInt32Value];
+    } while (![atomic compareAndSwap:value with:value + 1]);
+  }
+  [group done];
+}
 + (void)reply {
   [condition lock];
   while (!ready) {
@@ -86,6 +95,20 @@ static void atomics(void) {
   [group wait];
   test_assert([atomic unsignedInt32Value] == WORKERS * TIMES);
   [group release];
+
+  // Counting with compare-and-swap
+  [atomic setUnsignedInt32Value:0];
+  group = [[NXWaitGroup alloc] init];
+  [group add:WORKERS];
+  for (int i = 0; i < WORKERS; i++) {
+    start(@selector(countWithSwap));
+  }
+  [group wait];
+  test_assert([atomic unsignedInt32Value] == WORKERS * TIMES);
+  [group release];
+  test_assert(![atomic compareAndSwap:0 with:1]);
+  test_assert([atomic compareAndSwap:WORKERS * TIMES with:7]);
+  test_assert([atomic unsignedInt32Value] == 7);
 
   // Each operation, and wrapping around
   [atomic setUnsignedInt32Value:0];

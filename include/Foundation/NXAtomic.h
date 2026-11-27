@@ -10,10 +10,11 @@
  * @brief A 32-bit unsigned number, which threads can read and change without a lock.
  * @ingroup Foundation
  *
- * It's a picofuse atomic. Each change is whole, so it's right for counts and flags, but
- * it doesn't order what else a thread reads and writes: it can't be used to say that
- * other data is ready for another thread, for which there's NXCondition. It can't be
- * used in an interrupt, as sending a message there isn't safe.
+ * It's a picofuse atomic. Each change is whole. A value set with setUnsignedInt32Value:
+ * or compareAndSwap:with: hands over what the thread wrote before it to a thread which
+ * then reads the value, so it can say that other data is ready. increment, decrement
+ * and the bits don't: they're for counts and flags. It can't be used in an interrupt,
+ * as sending a message there isn't safe.
  *
  * \headerfile NXAtomic.h Foundation/Foundation.h
  */
@@ -41,6 +42,15 @@
  * @brief Sets the value.
  */
 - (void)setUnsignedInt32Value:(uint32_t)value;
+
+/**
+ * @brief Sets the value, if it's what's expected.
+ * @param expected The value it has to be.
+ * @param desired The value to set.
+ * @return YES if it was expected and is now desired, or NO if another thread changed it
+ * first, when it's left as it is.
+ */
+- (BOOL)compareAndSwap:(uint32_t)expected with:(uint32_t)desired;
 
 /**
  * @brief Adds one, wrapping around to zero, and returns the new value.
