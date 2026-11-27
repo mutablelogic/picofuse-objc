@@ -20,6 +20,9 @@
  * memory just before the instance. That's because the compiler lays out constant
  * strings, so their superclasses can't have any.
  *
+ * Any thread can retain, release and autorelease an object, except an NXAutoreleasePool,
+ * which is released by the thread which initialized it. See \ref foundation_threads.
+ *
  * \headerfile NXObject.h Foundation/Foundation.h
  */
 @interface NXObject : Object

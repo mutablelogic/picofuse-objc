@@ -46,6 +46,8 @@
  *
  * Subclasses implement length and cStr.
  *
+ * An NXString can't change, so any number of threads can use it at once. An NXMutableString can. See \ref foundation_threads.
+ *
  * \headerfile NXString.h Foundation/Foundation.h
  */
 @interface NXString : NXObject

@@ -24,7 +24,7 @@
  * unless it then stops with break, but setting the object for a key which is there
  * doesn't.
  *
- * A map shouldn't be changed by one thread while another uses it.
+ * Any number of threads can read a map at once, but while one changes it, no other thread can use it, and it doesn't lock itself. See \ref foundation_threads.
  *
  * \headerfile NXMap.h Foundation/Foundation.h
  */
