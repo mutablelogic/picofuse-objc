@@ -3,6 +3,7 @@
  * @brief Defines the NXNumber class, for integer, floating point and boolean values.
  */
 #pragma once
+#include "NXComparisonResult.h"
 #include <stdint.h>
 
 /**
@@ -210,6 +211,14 @@ uint64_t NXRandUnsignedInt64(void);
  * A floating point value which isn't a number is only equal to the same object.
  */
 - (BOOL)isEqual:(id)anObject;
+
+/**
+ * @brief Compares the number with another, by value, exactly, whatever their types:
+ * 1 and 1.0 are the same, and 2^53 + 1 is after 2^53 as a float. Not a number is
+ * after every number, and the same as itself. If other is nil, it's compared with
+ * zero.
+ */
+- (NXComparisonResult)compare:(NXNumber *)other;
 
 /**
  * @brief Returns a hash of the value, which is the same for equal numbers, such as 1,
