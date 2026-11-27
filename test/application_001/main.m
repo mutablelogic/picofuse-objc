@@ -7,6 +7,8 @@
 static NXAtomic *dispatched;  // events dispatched
 static NXAtomic *deallocated; // events deallocated
 static NXAtomic *started, *stopped;
+static NXAtomic *ready;    // set at the end of runLoopDidStart:
+static NXAtomic *finished; // events which have finished, slowly
 
 // An event which counts itself, and shuts the run loop down when it's the last
 @interface Counted : NXObject <NXEvent>
@@ -15,12 +17,24 @@ static NXAtomic *started, *stopped;
 @implementation Counted
 - (void)dealloc {
   [deallocated increment];
+
+  // It's released before its pool, so this has somewhere to go
+  [[[NXObject alloc] init] autorelease];
   [super dealloc];
 }
 - (void)dispatch {
-  if ([dispatched increment] == EVENTS) {
+  // None is dispatched until the delegate is told the run loop started
+  test_assert([ready unsignedInt32Value] == 1);
+  uint32_t n = [dispatched increment];
+  if (n == EVENTS) {
     [[NXRunLoop runningRunLoop] shutdownWithStatus:7];
   }
+
+  // The last few are slow, so they're still running on other workers as it stops
+  if (n > EVENTS - 4) {
+    [NXThread sleepForDuration:20 * NXMillisecond];
+  }
+  [finished increment];
 }
 @end
 
@@ -33,6 +47,7 @@ static NXAtomic *started, *stopped;
 
 @implementation Filler
 - (void)runLoopDidStart:(NXRunLoop *)runLoop {
+  [ready setUnsignedInt32Value:1];
   while ([runLoop post:[[[Counted alloc] init] autorelease]]) {
     posted++;
   }
@@ -61,8 +76,14 @@ static NXAtomic *started, *stopped;
     test_assert([runLoop post:event]);
     [event release];
   }
+
+  // Other workers mustn't dispatch them yet
+  [NXThread sleepForDuration:20 * NXMillisecond];
+  [ready setUnsignedInt32Value:1];
 }
 - (void)runLoopWillStop:(NXRunLoop *)runLoop {
+  // Every event has finished, on every worker
+  test_assert([finished unsignedInt32Value] == EVENTS);
   [stopped increment];
   test_assert(![runLoop post:[[[Counted alloc] init] autorelease]]);
 }
@@ -96,6 +117,8 @@ test_main(0) {
   dispatched = [[NXAtomic alloc] init];
   deallocated = [[NXAtomic alloc] init];
   started = [[NXAtomic alloc] init];
+  ready = [[NXAtomic alloc] init];
+  finished = [[NXAtomic alloc] init];
   stopped = [[NXAtomic alloc] init];
   Poster *poster = [[Poster alloc] init];
 
@@ -112,6 +135,8 @@ test_main(0) {
     [deallocated setUnsignedInt32Value:0];
     [started setUnsignedInt32Value:0];
     [stopped setUnsignedInt32Value:0];
+    [ready setUnsignedInt32Value:0];
+    [finished setUnsignedInt32Value:0];
     test_assert([runLoop runWithWorkers:workers] == 7);
     test_assert([dispatched unsignedInt32Value] == EVENTS);
     test_assert([deallocated unsignedInt32Value] == EVENTS + 1); // and the one refused
