@@ -18,14 +18,14 @@
 
 
 /**
- * @brief Called on worker 0 when the run loop starts, before it dispatches events. Events
- * can be posted from here.
+ * @brief Called on worker 0 when the run loop starts. Events can be posted from here, and
+ * none are dispatched, on any worker, until it returns.
  */
 - (void)runLoopDidStart:(NXRunLoop *)runLoop;
 
 /**
- * @brief Called on worker 0 once the run loop has stopped and dispatched every event
- * which was posted.
+ * @brief Called on the thread which ran the run loop, once it has stopped, every event
+ * which was posted has been dispatched, and every worker has finished.
  */
 - (void)runLoopWillStop:(NXRunLoop *)runLoop;
 

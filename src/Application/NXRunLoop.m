@@ -23,6 +23,10 @@ static NXRunLoop *running_loop(void) {
   return (NXRunLoop *)__atomic_load_n(&running, __ATOMIC_ACQUIRE);
 }
 
+// Set once worker 0 has told the delegate the run loop has started: the other workers
+// wait for it before they dispatch events
+static uint32_t started = 0;
+
 ///////////////////////////////////////////////////////////////////////////////
 // AN EVENT WHICH SENDS A MESSAGE
 
@@ -91,11 +95,18 @@ static void tell(id delegate, SEL selector, id argument) {
   }
 }
 
+// Worker 0 tells the delegate, and the others wait until it has, as picofuse starts them
+// first
 static void on_start(uint8_t worker) {
   if (worker == 0) {
     NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
     tell([running_loop() delegate], @selector(runLoopDidStart:), running_loop());
     [pool release];
+    __atomic_store_n(&started, 1, __ATOMIC_RELEASE);
+    return;
+  }
+  while (__atomic_load_n(&started, __ATOMIC_ACQUIRE) == 0) {
+    sys_sleep_ms(1);
   }
 }
 
@@ -106,16 +117,10 @@ static void on_event(sys_event_t event) {
     sys_panicf("-[NXRunLoop runWithWorkers:] out of memory for an autorelease pool");
   }
   [(id<NXEvent>)event dispatch];
-  [pool release];
-  [(NXObject *)event release];
-}
 
-static void on_stop(uint8_t worker) {
-  if (worker == 0) {
-    NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
-    tell([running_loop() delegate], @selector(runLoopWillStop:), running_loop());
-    [pool release];
-  }
+  // Released before the pool, as its dealloc, or its target's, may autorelease
+  [(NXObject *)event release];
+  [pool release];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,10 +153,16 @@ static void on_stop(uint8_t worker) {
 }
 
 - (int)runWithWorkers:(uint8_t)workers {
-  // Only one at a time, as picofuse's is one for the process
-  void *none = NULL;
-  if (!__atomic_compare_exchange_n(&running, &none, (void *)self, false, __ATOMIC_ACQ_REL,
-                                   __ATOMIC_ACQUIRE)) {
+  // Only one at a time, as picofuse's is one for the process. Starting and stopping are
+  // under the same lock as posting and shutting down, so those are always for this run.
+  BOOL free = NO;
+  @synchronized([NXRunLoop class]) {
+    free = running == NULL;
+    if (free) {
+      __atomic_store_n(&running, (void *)self, __ATOMIC_RELEASE);
+    }
+  }
+  if (!free) {
     return -1;
   }
   [self retain];
@@ -159,12 +170,23 @@ static void on_stop(uint8_t worker) {
   // A queue for each run, as it's shut down when the run loop stops
   _queue = sys_event_queue_init(_capacity);
   int status = -1;
-  if (_queue != NULL) {
-    status = (int)sys_runloop_run(workers, _queue, on_start, on_event, NULL, on_stop);
+  BOOL ran = _queue != NULL;
+  if (ran) {
+    __atomic_store_n(&started, 0, __ATOMIC_RELEASE);
+    status = (int)sys_runloop_run(workers, _queue, on_start, on_event, NULL, NULL);
     sys_event_queue_deinit(_queue);
     _queue = NULL;
   }
-  __atomic_store_n(&running, NULL, __ATOMIC_RELEASE);
+  @synchronized([NXRunLoop class]) {
+    __atomic_store_n(&running, NULL, __ATOMIC_RELEASE);
+  }
+
+  // Every worker has finished, so the delegate is told here
+  if (ran) {
+    NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
+    tell(_delegate, @selector(runLoopWillStop:), self);
+    [pool release];
+  }
   [self release];
   return status;
 }
@@ -174,21 +196,26 @@ static void on_stop(uint8_t worker) {
 }
 
 - (void)shutdownWithStatus:(int)status {
-  if ([self isRunning]) {
-    sys_runloop_shutdown((uint32_t)status);
+  @synchronized([NXRunLoop class]) {
+    if (running == (void *)self) {
+      sys_runloop_shutdown((uint32_t)status);
+    }
   }
 }
 
 - (BOOL)post:(id<NXEvent>)event {
-  if (event == nil || ![self isRunning]) {
+  if (event == nil) {
     return NO;
   }
+  BOOL posted = NO;
   [(NXObject *)event retain];
-  if (!sys_runloop_post(event)) {
-    [(NXObject *)event release];
-    return NO;
+  @synchronized([NXRunLoop class]) {
+    posted = running == (void *)self && sys_runloop_post(event);
   }
-  return YES;
+  if (!posted) {
+    [(NXObject *)event release];
+  }
+  return posted;
 }
 
 - (BOOL)perform:(SEL)selector target:(id)target {

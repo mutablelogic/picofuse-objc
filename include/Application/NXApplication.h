@@ -17,14 +17,14 @@
 
 
 /**
- * @brief Called on worker 0 when the application starts, before its run loop dispatches
- * events. Events can be posted from here.
+ * @brief Called on worker 0 when the application starts. Events can be posted from here,
+ * and none are dispatched, on any worker, until it returns.
  */
 - (void)applicationDidStart:(NXApplication *)application;
 
 /**
- * @brief Called on worker 0 once the application has been terminated and its run loop has
- * dispatched every event which was posted.
+ * @brief Called on the thread which ran the application, once it has been terminated,
+ * every event which was posted has been dispatched, and every worker has finished.
  */
 - (void)applicationWillTerminate:(NXApplication *)application;
 
