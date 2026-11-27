@@ -108,6 +108,45 @@
 }
 @end
 
+// A stream which gives one byte at a time, as some streams do
+@interface Trickle : NXStream
+@end
+
+@implementation Trickle
+- (size_t)readBytes:(void *)bytes length:(size_t)length {
+  return [super readBytes:bytes length:length > 0 ? 1 : 0];
+}
+@end
+
+// Has an array and a map, which can be null, of arrays of points
+@interface Lists : NXObject <NXArchiving> {
+@public
+  id array;
+  id map;
+}
+@end
+
+@implementation Lists
+- (void)dealloc {
+  [array release];
+  [map release];
+  [super dealloc];
+}
+- (BOOL)encodeWithArchive:(NXArchive *)archive {
+  return [archive encodeObject:array forKey:@"array"] && [archive encodeObject:map forKey:@"map"];
+}
+- (id)initWithArchive:(NXArchive *)archive {
+  self = [super init];
+  array = [[archive decodeArrayOfClass:[NXArray class] forKey:@"array"] retain];
+  map = [[archive decodeMapOfClass:[NXArray class] forKey:@"map"] retain];
+  if ([archive failed]) {
+    [self release];
+    return nil;
+  }
+  return self;
+}
+@end
+
 // Archives an object, and returns its bytes
 static NXData *binary(id object) {
   NXStream *stream = [NXStream streamWithCapacity:1024];
@@ -239,7 +278,52 @@ test_main(0) {
   test_assert(unbinary(Nil, [NXData dataWithBytes:huge length:sizeof(huge)], 0, 1000, &failed) ==
                   nil && failed);
 
-  // A decoder can't encode, an encoder can't decode, and only one value at the top
+  // Read a byte at a time
+  {
+    NXStream *trickle = [[[Trickle alloc] initWithBytes:[data bytes] length:[data length]] autorelease];
+    NXArchive *archive = [NXArchive binaryDecoderWithStream:trickle];
+    Everything *slow = [archive decodeObjectOfClass:[Everything class] forKey:nil];
+    test_assert(slow != nil && ![archive failed] && slow->u64 == UINT64_MAX);
+    test_assert([slow->string isEqual:@"caf\xC3\xA9"]);
+    [trickle close];
+  }
+
+  // A boolean which isn't 0 or 1
+  static const uint8_t two[] = {'P', 'F', 1, 0xaa, 0xf3, 0x10, 0x90, 0, 2};
+  test_assert(unbinary(Nil, [NXData dataWithBytes:two length:sizeof(two)], 0, SIZE_MAX, &failed) ==
+                  nil && failed);
+
+  // An array or map which is null is nil, and the depth of their contents counts
+  Lists *lists = [[[Lists alloc] init] autorelease];
+  lists->array = [[NXNull nullValue] retain];
+  lists->map = [[NXNull nullValue] retain];
+  Lists *read = round_trip([Lists class], lists);
+  test_assert(read != nil && read->array == nil && read->map == nil);
+  [lists->array release];
+  [lists->map release];
+  NXArray *inner = [NXArray arrayWithObjects:[NXArray arrayWithObjects:@"x", nil], nil];
+  lists->array = [[NXArray arrayWithObjects:inner, nil] retain];
+  lists->map = [[NXMap mapWithKeysAndObjects:@"k", inner, nil] retain];
+  NXData *nested = binary(lists);
+  test_assert(unbinary([Lists class], nested, 4, SIZE_MAX, &failed) != nil && !failed);
+  test_assert(unbinary([Lists class], nested, 3, SIZE_MAX, &failed) == nil && failed);
+
+  // A decoder can't encode, and an encoder can't decode, and neither touches the stream
+  {
+    NXStream *in = [NXStream streamWithData:data];
+    NXArchive *decoder = [NXArchive binaryDecoderWithStream:in];
+    test_assert(![decoder encodeInt32:1 forKey:@"x"] && [decoder failed]);
+    test_assert([in position] == 0);
+    [in close];
+    NXStream *out = [NXStream streamWithCapacity:16];
+    NXArchive *encoder = [NXArchive binaryEncoderWithStream:out];
+    test_assert([encoder decodeInt32ForKey:@"x"] == 0 && [encoder failed]);
+    test_assert([encoder decodeArrayOfClass:Nil forKey:@"x"] == nil);
+    test_assert([out position] == 0);
+    [out close];
+  }
+
+  // Only one value at the top
   NXStream *stream = [NXStream streamWithCapacity:64];
   NXArchive *archive = [NXArchive binaryEncoderWithStream:stream];
   test_assert([archive format] == NXArchiveFormatBinary && [archive isEncoding]);
