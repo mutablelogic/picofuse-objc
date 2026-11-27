@@ -3,6 +3,7 @@ set(NAME "picofuse-objc-gcc")
 add_library(${NAME} STATIC
     category.c
     class.c
+    enumeration.c
     hash.c
     init.m
     lock.c
