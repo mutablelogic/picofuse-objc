@@ -133,6 +133,15 @@ test_main(0) {
   data = [[NXData alloc] init];
   change_in_thread(@selector(markData));
   (void)[data length];
+#elif defined(CASE_array_equal_other)
+  change_in_thread(@selector(sort));
+  (void)[[NXArray array] isEqual:array];
+#elif defined(CASE_map_equal_other)
+  change_in_thread(@selector(set));
+  (void)[[NXMap map] isEqual:map];
+#elif defined(CASE_map_remove_all)
+  change_in_thread(@selector(set));
+  [map removeAllObjects];
 #elif defined(CASE_map_two_threads)
   change_in_thread(@selector(set));
   [map setObject:@"z" forKey:@"z"];

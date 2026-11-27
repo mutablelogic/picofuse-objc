@@ -462,6 +462,21 @@ objc_panic_test(foundation_035_map_nested "-.NXMap removeObjectForKey:. changed 
     DEFINITIONS CASE_map_nested
     LIBRARIES picofuse-objc-foundation
 )
+objc_panic_test(foundation_035_array_equal_other "-.NXArray isEqual:. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_array_equal_other
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_map_equal_other "-.NXMap isEqual:. used while another thread changes it"
+    foundation_035/main.m
+    DEFINITIONS CASE_map_equal_other
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_035_map_remove_all "-.NXMap removeAllObjects. changed by two threads at once"
+    foundation_035/main.m
+    DEFINITIONS CASE_map_remove_all
+    LIBRARIES picofuse-objc-foundation
+)
 objc_panic_test(foundation_035_string_two_threads "-.NXMutableString appendCString:. changed by two threads at once"
     foundation_035/main.m
     DEFINITIONS CASE_string_two_threads
