@@ -63,6 +63,13 @@
 + (id)streamWithBytes:(const void *)bytes length:(size_t)length;
 
 /**
+ * @brief Returns a stream which reads and writes a copy of the bytes of data, from the
+ * start.
+ * @return The stream, or nil if too many are open or there isn't enough memory.
+ */
++ (id)streamWithData:(NXData *)data;
+
+/**
  * @brief Returns a stream for the standard input, or nil if there isn't one.
  */
 + (NXStream *)standardInput;

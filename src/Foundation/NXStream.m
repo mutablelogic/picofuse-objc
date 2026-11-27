@@ -42,6 +42,10 @@ static int stdin_peeked = NXStreamEnd;
   return [[[self alloc] initWithBytes:bytes length:length] autorelease];
 }
 
++ (id)streamWithData:(NXData *)data {
+  return [self streamWithBytes:[data bytes] length:[data length]];
+}
+
 + (NXStream *)standardInput {
   return [[[self alloc] initWithStream:sys_stdin owned:NO] autorelease];
 }
