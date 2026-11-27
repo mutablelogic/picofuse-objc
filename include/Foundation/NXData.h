@@ -104,8 +104,8 @@
 
 /**
  * @brief Returns a hash of the bytes, as data.
- * @return The hash, or nil if it isn't available or there isn't enough memory. It's
- * found from a stream of a copy of the bytes, so there needs to be room for that.
+ * @return The hash, or nil if it isn't available or there isn't enough memory. The
+ * bytes are hashed where they are, without a copy.
  */
 - (NXData *)hashWithAlgorithm:(NXHashAlgorithm)algorithm;
 

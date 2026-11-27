@@ -148,11 +148,30 @@
 }
 
 - (NXData *)hashWithAlgorithm:(NXHashAlgorithm)algorithm {
-  uint8_t hash[NXHashMaxSize];
-  NXStream *stream = [[NXStream alloc] initWithBytes:_bytes length:_length];
-  size_t size = [stream hashWithAlgorithm:algorithm bytes:hash];
-  [stream release];
-  return size == 0 ? nil : [NXData dataWithBytes:hash length:size];
+  uint8_t digest[NXHashMaxSize];
+  size_t size = 0;
+
+#if SYS_HASH_CAPACITY == 1
+  // There can only be one at a time, so wait until no other thread has it,
+  // with the same lock as -[NXStream hashWithAlgorithm:bytes:]
+  @synchronized([NXStream class]) {
+#endif
+    sys_hash_t *hash = sys_hash_init((sys_hash_algorithm_t)algorithm);
+    if (hash != NULL) {
+      // The bytes are hashed where they are, without a copy
+      if (sys_hash_update_bytes(hash, _bytes, _length)) {
+        const uint8_t *result = sys_hash_finalize(hash);
+        if (result != NULL) {
+          size = sys_hash_size(hash);
+          memcpy(digest, result, size);
+        }
+      }
+      sys_hash_deinit(hash);
+    }
+#if SYS_HASH_CAPACITY == 1
+  }
+#endif
+  return size == 0 ? nil : [NXData dataWithBytes:digest length:size];
 }
 
 - (BOOL)isEqual:(id)anObject {
