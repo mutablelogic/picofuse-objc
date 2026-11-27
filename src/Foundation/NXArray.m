@@ -13,6 +13,47 @@
 - (BOOL)reserve:(size_t)capacity;
 @end
 
+// Returns YES if a comes after b, by sending a the comparator
+static BOOL is_after(id a, id b, SEL comparator) {
+  void (*imp)(void) = (void (*)(void))objc_msg_lookup(a, comparator);
+  return ((NXComparisonResult(*)(id, SEL, id))imp)(a, comparator, b) ==
+         NXComparisonDescending;
+}
+
+// Sorts objects, keeping those which are the same in the order they were. A merge
+// sort, with room in buffer for the first half of them. A few are sorted by inserting
+// each in turn, and halves which are already in order aren't merged.
+static void sort(id *objects, id *buffer, size_t count, SEL comparator) {
+  if (count <= 8) {
+    for (size_t i = 1; i < count; i++) {
+      id object = objects[i];
+      size_t j = i;
+      for (; j > 0 && is_after(objects[j - 1], object, comparator); j--) {
+        objects[j] = objects[j - 1];
+      }
+      objects[j] = object;
+    }
+    return;
+  }
+  size_t half = count / 2;
+  sort(objects, buffer, half, comparator);
+  sort(objects + half, buffer, count - half, comparator);
+  if (!is_after(objects[half - 1], objects[half], comparator)) {
+    return;
+  }
+
+  // Merge the first half, moved to the buffer, with the second, which stays put.
+  // From the first half when they're the same, so it stays in order.
+  memcpy(buffer, objects, half * sizeof(id));
+  size_t i = 0, j = half, k = 0;
+  while (i < half && j < count) {
+    objects[k++] = is_after(buffer[i], objects[j], comparator) ? objects[j++] : buffer[i++];
+  }
+  while (i < half) {
+    objects[k++] = buffer[i++];
+  }
+}
+
 @implementation NXArray
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -209,6 +250,56 @@
     }
   }
   return copy;
+}
+
+- (NXArray *)subarrayFromIndex:(size_t)index count:(size_t)count {
+  if (index > _count || count > _count - index) {
+    return nil;
+  }
+  NXArray *array = [NXArray arrayWithCapacity:count];
+  for (size_t i = 0; array != nil && i < count; i++) {
+    if (![array appendObject:_objects[index + i]]) {
+      return nil;
+    }
+  }
+  return array;
+}
+
+- (NXString *)componentsJoinedByString:(NXString *)separator {
+  NXMutableString *string = [NXMutableString string];
+  for (size_t i = 0; string != nil && i < _count; i++) {
+    if (i > 0 && separator != nil && ![string appendString:separator]) {
+      return nil;
+    }
+    id object = _objects[i];
+    BOOL appended = object_isKindOfClass(object, [NXString class])
+                        ? [string appendString:object]
+                        : [string appendFormat:@"%@", object];
+    if (!appended) {
+      return nil;
+    }
+  }
+  return string;
+}
+
+- (BOOL)sortUsingSelector:(SEL)comparator {
+  if (comparator == NULL) {
+    return NO;
+  }
+  if (_count < 2) {
+    return YES;
+  }
+
+  // Room for the first half of the objects, while they're merged with the second
+  size_t half = _count / 2;
+  id *buffer = NXZoneAlloc([self zone], half * sizeof(id));
+  if (buffer == NULL) {
+    return NO;
+  }
+  sort(_objects, buffer, _count, comparator);
+  NXZoneFree([self zone], buffer);
+  _mutations++; // the objects have moved
+  return YES;
 }
 
 // The objects are one after another, so they're given to the loop as they are, in one
