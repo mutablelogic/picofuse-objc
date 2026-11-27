@@ -8,10 +8,12 @@
  *
  * @section foundation_threads Threads and mutable objects
  *
- * - Any object can be retained, released and autoreleased by any thread. The retain
- *   count is changed atomically, and the thread whose release deallocates an object sees
- *   what other threads wrote to it first. Each thread has its own autorelease pools, and
- *   a thread started by NXThread has one.
+ * - Any object can be retained, released and autoreleased by any thread, except an
+ *   NXAutoreleasePool. The retain count is changed atomically, and the thread whose
+ *   release deallocates an object sees what other threads wrote to it first.
+ * - Each thread has its own autorelease pools, and a thread started by NXThread has one.
+ *   A pool can't be retained or autoreleased: it's released by the thread which
+ *   initialized it, while it's that thread's current pool.
  * - An object which can't change, which is an NXString (but not an NXMutableString), an
  *   NXNumber, an NXDate or NXNull, can be used by any number of threads at once.
  * - An object which can change, which is an NXArray, an NXMap, an NXMutableString or an
