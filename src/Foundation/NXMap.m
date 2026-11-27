@@ -1,3 +1,4 @@
+#include "NXChange+Private.h"
 #include "NXFastEnumeration+Private.h"
 #include "NXObject+Private.h"
 #include "NXZone+Private.h"
@@ -18,7 +19,7 @@ typedef struct {
 @interface NXMap (Private)
 - (BOOL)resize:(size_t)capacity;
 - (size_t)find:(id)key;
-- (void)removeAtIndex:(size_t)index;
+- (entry_t)removeAtIndex:(size_t)index;
 @end
 
 // Returns the size of table needed for a number of keys, so it's no more than three
@@ -83,6 +84,7 @@ static size_t capacity_for(size_t count) {
 // PROPERTIES
 
 - (size_t)count {
+  NXReadCheck(&_changing, __func__);
   return _count;
 }
 
@@ -90,11 +92,13 @@ static size_t capacity_for(size_t count) {
 // PUBLIC METHODS
 
 - (id)objectForKey:(id)key {
+  NXReadCheck(&_changing, __func__);
   size_t index = [self find:key];
   return index == NXNotFound ? nil : ((entry_t *)_entries)[index].object;
 }
 
 - (BOOL)containsObject:(id)key {
+  NXReadCheck(&_changing, __func__);
   return [self find:key] != NXNotFound;
 }
 
@@ -103,6 +107,9 @@ static size_t capacity_for(size_t count) {
     return NO;
   }
 
+  // The key's hash, isEqual: and copy can read the map, but not change it
+  NXChangeBegin(&_changing, __func__);
+
   // Replace the object, releasing the old one once it's out of the map, in case its
   // dealloc uses the map
   size_t index = [self find:key];
@@ -110,6 +117,7 @@ static size_t capacity_for(size_t count) {
     entry_t *entry = &((entry_t *)_entries)[index];
     id old = entry->object;
     entry->object = [object retain];
+    NXChangeEnd(&_changing);
     [old release];
     return YES;
   }
@@ -118,11 +126,13 @@ static size_t capacity_for(size_t count) {
   if (_count + 1 > _capacity / 4 * 3) {
     size_t capacity = capacity_for(_count + 1);
     if (capacity == 0 || ![self resize:capacity]) {
+      NXChangeEnd(&_changing);
       return NO;
     }
   }
   id copy = [key copy];
   if (copy == nil) {
+    NXChangeEnd(&_changing);
     return NO;
   }
   entry_t *entries = _entries;
@@ -135,31 +145,51 @@ static size_t capacity_for(size_t count) {
   entries[i].object = [object retain];
   _count++;
   _mutations++;
+  NXChangeEnd(&_changing);
   return YES;
 }
 
 - (BOOL)removeObjectForKey:(id)key {
+  NXChangeBegin(&_changing, __func__);
   size_t index = [self find:key];
   if (index == NXNotFound) {
+    NXChangeEnd(&_changing);
     return NO;
   }
-  [self removeAtIndex:index];
+  entry_t removed = [self removeAtIndex:index];
+  NXChangeEnd(&_changing);
+  [removed.key release];
+  [removed.object release];
   return YES;
 }
 
 - (void)removeAllObjects {
-  // Each is removed as removeObjectForKey: does, so what's left can always be found. A
-  // dealloc may change the map, so look again until it's empty.
+  // Each is removed as removeObjectForKey: does, so what's left can always be found.
+  // The table is only looked at during the change, which ends while each key and object
+  // is released, as a dealloc may change the map. Removing one can move another into
+  // its place, so the same index is looked at again, and from the start if the table
+  // has shrunk.
+  NXChangeBegin(&_changing, __func__);
+  size_t i = 0;
   while (_count > 0) {
-    for (size_t i = 0; i < _capacity && _count > 0; i++) {
-      while (i < _capacity && ((entry_t *)_entries)[i].key != nil) {
-        [self removeAtIndex:i];
-      }
+    if (i >= _capacity) {
+      i = 0;
     }
+    if (((entry_t *)_entries)[i].key == nil) {
+      i++;
+      continue;
+    }
+    entry_t removed = [self removeAtIndex:i];
+    NXChangeEnd(&_changing);
+    [removed.key release];
+    [removed.object release];
+    NXChangeBegin(&_changing, __func__);
   }
+  NXChangeEnd(&_changing);
 }
 
 - (NXArray *)allKeys {
+  NXReadCheck(&_changing, __func__);
   NXArray *keys = [NXArray arrayWithCapacity:_count];
   entry_t *entries = _entries;
   for (size_t i = 0; keys != nil && i < _capacity; i++) {
@@ -171,6 +201,7 @@ static size_t capacity_for(size_t count) {
 }
 
 - (NXArray *)allObjects {
+  NXReadCheck(&_changing, __func__);
   NXArray *objects = [NXArray arrayWithCapacity:_count];
   entry_t *entries = _entries;
   for (size_t i = 0; objects != nil && i < _capacity; i++) {
@@ -189,6 +220,7 @@ static size_t capacity_for(size_t count) {
 - (unsigned long)countByEnumeratingWithState:(NXFastEnumerationState *)state
                                      objects:(id *)objects
                                        count:(unsigned long)count {
+  NXReadCheck(&_changing, __func__);
   if (state->state == 0) {
     state->extra[0] = _mutations;
   } else if (state->extra[0] != _mutations) {
@@ -212,10 +244,12 @@ static size_t capacity_for(size_t count) {
   if (anObject == self) {
     return YES;
   }
+  NXReadCheck(&_changing, __func__);
   if (anObject == nil || !object_isKindOfClass(anObject, [NXMap class])) {
     return NO;
   }
   NXMap *other = anObject;
+  NXReadCheck(&other->_changing, __func__);
   if (other->_count != _count) {
     return NO;
   }
@@ -233,6 +267,7 @@ static size_t capacity_for(size_t count) {
 }
 
 - (uintptr_t)hash {
+  NXReadCheck(&_changing, __func__);
   // Added, as the order of the keys isn't defined
   uintptr_t hash = _count;
   entry_t *entries = _entries;
@@ -245,6 +280,7 @@ static size_t capacity_for(size_t count) {
 }
 
 - (id)copy {
+  NXReadCheck(&_changing, __func__);
   NXMap *copy = [[NXMap allocInZone:[self zone]] initWithCapacity:_count];
   entry_t *entries = _entries;
   for (size_t i = 0; copy != nil && i < _capacity; i++) {
@@ -258,6 +294,7 @@ static size_t capacity_for(size_t count) {
 }
 
 - (NXString *)description {
+  NXReadCheck(&_changing, __func__);
   NXMutableString *description = [NXMutableString stringWithCString:"{"];
   entry_t *entries = _entries;
   BOOL first = YES;
@@ -312,8 +349,9 @@ static size_t capacity_for(size_t count) {
 
 // Removes the key and object at an index, moving back those after it which would
 // otherwise not be found, so there are no gaps between where a key belongs and where it
-// is. They're released once they're out of the map, in case their dealloc uses it.
-- (void)removeAtIndex:(size_t)index {
+// is. They're returned to be released once the change is over, in case their dealloc
+// uses the map.
+- (entry_t)removeAtIndex:(size_t)index {
   entry_t *entries = _entries;
   size_t mask = _capacity - 1;
   entry_t removed = entries[index];
@@ -331,8 +369,7 @@ static size_t capacity_for(size_t count) {
   entries[hole].object = nil;
   _count--;
   _mutations++;
-  [removed.key release];
-  [removed.object release];
+  return removed;
 }
 
 // Returns the index of a key in the table, or NXNotFound
