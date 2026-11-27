@@ -37,6 +37,8 @@ typedef enum {
  * On a Pico, the clock starts at 1970-01-01 when it's turned on, until it's set, and is
  * to the millisecond.
  *
+ * A date can't change, so any number of threads can use it at once. See \ref foundation_threads.
+ *
  * \headerfile NXDate.h Foundation/Foundation.h
  */
 @interface NXDate : NXObject {
