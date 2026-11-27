@@ -105,7 +105,7 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
   int64_t signed_value;
   uint64_t unsigned_value;
   double float_value;
-  if (sys_string_parse_bool(cStr, &boolean)) {
+  if (sys_string_parse_bool(cStr, length, &boolean)) {
     return [self numberWithBool:boolean];
   } else if (sys_string_parse_int64(cStr, length, &signed_value)) {
     return [self numberWithInt64:signed_value];
