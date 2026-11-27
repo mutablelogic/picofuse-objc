@@ -153,13 +153,21 @@
 }
 
 - (NXComparisonResult)compare:(NXDate *)other {
-  if (_date.seconds != other->_date.seconds) {
-    return _date.seconds < other->_date.seconds ? NXComparisonAscending
-                                                 : NXComparisonDescending;
+  // nil is the current date, as for durationSinceDate:
+  sys_date_t now = {0};
+  const sys_date_t *date = &now;
+  if (other != nil) {
+    date = &other->_date;
+  } else if (!sys_date_get_now(&now)) {
+    sys_panicf("-[NXDate compare:] can't get the current date");
   }
-  if (_date.nanoseconds != other->_date.nanoseconds) {
-    return _date.nanoseconds < other->_date.nanoseconds ? NXComparisonAscending
-                                                         : NXComparisonDescending;
+  if (_date.seconds != date->seconds) {
+    return _date.seconds < date->seconds ? NXComparisonAscending
+                                          : NXComparisonDescending;
+  }
+  if (_date.nanoseconds != date->nanoseconds) {
+    return _date.nanoseconds < date->nanoseconds ? NXComparisonAscending
+                                                  : NXComparisonDescending;
   }
   return NXComparisonSame;
 }
