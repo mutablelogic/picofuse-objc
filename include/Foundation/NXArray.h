@@ -29,6 +29,7 @@
   size_t _count;    ///< The number of objects
   size_t _capacity; ///< The number of objects there's room for
   unsigned long _mutations; ///< Counts objects added and removed, for for...in loops
+  uintptr_t _changing;      ///< The thread which is changing it, or zero
 }
 
 /**

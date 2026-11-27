@@ -35,6 +35,7 @@
   size_t _capacity; ///< The size of the table, which is a power of two, or zero
   unsigned _shift;  ///< The bits of a hash which aren't used for the size
   unsigned long _mutations; ///< Counts keys added and removed, for for...in loops
+  uintptr_t _changing;      ///< The thread which is changing it, or zero
 }
 
 /**
