@@ -2,11 +2,14 @@ set(NAME "picofuse-objc-foundation")
 
 add_library(${NAME} STATIC
     NXArray.m
+    NXAtomic.m
     NXAutoreleasePool.m
     NXConstantString.m
+    NXCondition.m
     NXData.m
     NXDate.m
     NXDuration.m
+    NXLock.m
     NXLog.m
     NXMap.m
     NXMutableString.m
@@ -20,6 +23,7 @@ add_library(${NAME} STATIC
     NXStream.m
     NXString.m
     NXThread.m
+    NXWaitGroup.m
     NXZone.m
 )
 target_include_directories(${NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)

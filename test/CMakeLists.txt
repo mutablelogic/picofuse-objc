@@ -405,3 +405,21 @@ objc_test(foundation_031
     foundation_031/main.m
     LIBRARIES picofuse-objc-foundation
 )
+
+# Locks, conditions, wait groups and atomics, across threads.
+objc_test(foundation_032
+    foundation_032/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Misusing a wait group panics.
+objc_panic_test(foundation_033_done "-.NXWaitGroup done. the count is already zero"
+    foundation_033/main.m
+    DEFINITIONS CASE_done
+    LIBRARIES picofuse-objc-foundation
+)
+objc_panic_test(foundation_033_add "-.NXWaitGroup add:. can't add -1"
+    foundation_033/main.m
+    DEFINITIONS CASE_add
+    LIBRARIES picofuse-objc-foundation
+)
