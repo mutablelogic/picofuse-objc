@@ -73,10 +73,13 @@ static void strings(NXZone *zone) {
       {"", ""},           {"   ", ""},       {"a", "a"},
       {" a", "a"},        {"a ", "a"},       {" \t\r\na b\n ", "a b"},
       {"\xC3\xA9 \xC3\xA9 ", "\xC3\xA9 \xC3\xA9"},
-      // No-break spaces and NEL are whitespace, other Unicode spaces aren't
+      // Unicode's spaces are whitespace: no-break, NEL, em, ideographic
       {"\xC2\xA0", ""},
       {"\xC2\xA0\xC2\x85" "a\xC2\xA0" "b\xC2\xA0 ", "a\xC2\xA0" "b"},
-      {"\xE3\x80\x80" "a\xE3\x80\x80", "\xE3\x80\x80" "a\xE3\x80\x80"},
+      {"\xE3\x80\x80" "a\xE3\x80\x80", "a"},
+      {"\xE2\x80\x83" "a\xE2\x80\x83", "a"},
+      // A zero width space isn't
+      {"\xE2\x80\x8B" "a\xE2\x80\x8B", "\xE2\x80\x8B" "a\xE2\x80\x8B"},
   };
   for (size_t i = 0; i < sizeof(trims) / sizeof(trims[0]); i++) {
     string = [NXMutableString stringWithCString:trims[i].before];
