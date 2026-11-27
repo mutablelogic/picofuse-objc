@@ -44,6 +44,47 @@ static BOOL exact_value(NXNumber *number, BOOL *negative, uint64_t *magnitude) {
   return YES;
 }
 
+// Compares two integers, each a sign and a magnitude
+static NXComparisonResult compare_integers(BOOL negative, uint64_t magnitude,
+                                           BOOL other_negative, uint64_t other) {
+  if (negative != other_negative) {
+    return negative ? NXComparisonAscending : NXComparisonDescending;
+  }
+  if (magnitude == other) {
+    return NXComparisonSame;
+  }
+  // The larger magnitude is the larger number, unless they're negative
+  return (magnitude < other) != negative ? NXComparisonAscending
+                                         : NXComparisonDescending;
+}
+
+// Compares a floating point value with an integer, exactly. Not a number is after
+// every number.
+static NXComparisonResult compare_float(double value, BOOL negative,
+                                        uint64_t magnitude) {
+  if (value != value) {
+    return NXComparisonDescending;
+  }
+  BOOL value_negative;
+  uint64_t value_magnitude;
+  switch (NXFloatToInteger(value, &value_negative, &value_magnitude)) {
+  case NXFloatNotInteger:
+    // Too large for any integer, either way
+    return value < 0 ? NXComparisonAscending : NXComparisonDescending;
+  case NXFloatTruncated: {
+    // The same integer part, but a fraction further from zero
+    NXComparisonResult result =
+        compare_integers(value_negative, value_magnitude, negative, magnitude);
+    if (result != NXComparisonSame) {
+      return result;
+    }
+    return value < 0 ? NXComparisonAscending : NXComparisonDescending;
+  }
+  default:
+    return compare_integers(value_negative, value_magnitude, negative, magnitude);
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PUBLIC METHODS
 
@@ -261,6 +302,42 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
   uint64_t bits;
   memcpy(&bits, &value, sizeof(bits));
   return NXHashFold(bits);
+}
+
+- (NXComparisonResult)compare:(NXNumber *)other {
+  if (other == nil) {
+    other = [NXNumber zeroValue];
+  }
+  BOOL is_float = [self isFloat], other_is_float = [other isFloat];
+  uint64_t magnitude, other_magnitude;
+  BOOL negative, other_negative;
+
+  // Two floating point numbers, where not a number is after every number
+  if (is_float && other_is_float) {
+    double value = [self float64Value], other_value = [other float64Value];
+    if (value != value || other_value != other_value) {
+      return value == value     ? NXComparisonAscending
+             : other_value == other_value ? NXComparisonDescending
+                                          : NXComparisonSame;
+    }
+    return value < other_value   ? NXComparisonAscending
+           : value > other_value ? NXComparisonDescending
+                                 : NXComparisonSame;
+  }
+
+  // One of each, or two integers
+  if (is_float) {
+    other_negative = [other isNegative:&other_magnitude];
+    return compare_float([self float64Value], other_negative, other_magnitude);
+  }
+  negative = [self isNegative:&magnitude];
+  if (other_is_float) {
+    NXComparisonResult result =
+        compare_float([other float64Value], negative, magnitude);
+    return (NXComparisonResult)-result;
+  }
+  other_negative = [other isNegative:&other_magnitude];
+  return compare_integers(negative, magnitude, other_negative, other_magnitude);
 }
 
 - (BOOL)isEqual:(id)anObject {
