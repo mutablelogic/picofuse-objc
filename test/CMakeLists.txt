@@ -207,6 +207,11 @@ objc_test(objc_025
     objc_025/main.m
 )
 
+# objc_getClassList: every class once, resolved.
+objc_test(objc_026
+    objc_026/main.m
+)
+
 ###############################################################################
 # Foundation
 
@@ -501,5 +506,11 @@ objc_panic_test(foundation_035_data_read "-.NXData length. used while another th
 # Archiving objects as JSON.
 objc_test(foundation_036
     foundation_036/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
+# Archiving objects as binary.
+objc_test(foundation_037
+    foundation_037/main.m
     LIBRARIES picofuse-objc-foundation
 )
