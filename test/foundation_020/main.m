@@ -180,7 +180,7 @@ test_main(0) {
   NXDate *date = [NXDate dateWithYear:2026 month:9 day:6 hours:11 minutes:37 seconds:5];
   test_assert([NXDate setCurrentDate:date]);
   NXDuration since = [[NXDate date] durationSinceDate:date];
-  test_assert(since >= 0 && since < NXSecond);
+  test_assert(since >= 0 && since < 5 * NXMillisecond); // mutablelogic/picofuse#45
   test_assert([[NXDate date] timeZoneOffset] == 0);
   test_assert([NXDate setCurrentDate:[date dateWithTimeZoneOffset:3600]]);
   test_assert([[NXDate date] timeZoneOffset] == 3600);
