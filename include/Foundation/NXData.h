@@ -40,6 +40,7 @@
 /**
  * @brief Returns a copy of some bytes.
  * @param bytes The bytes, or NULL if the length is zero.
+ * @param length The number of bytes.
  * @return The data, or nil if there isn't enough memory, or the bytes are NULL but the
  * length isn't zero.
  */

@@ -7,6 +7,7 @@ CMAKE_BUILD_TYPE ?= Release
 # Tools
 CMAKE ?= $(shell which cmake 2>/dev/null)
 GIT ?= $(shell which git 2>/dev/null)
+DOCKER ?= $(shell which docker 2>/dev/null)
 
 # On a Mac, the host compiler has to be GCC: use the latest from Homebrew. For a
 # board, the compiler is chosen by CMakeLists.txt.
@@ -56,8 +57,21 @@ clean:
 	@rm -rf ${BUILD_DIR}
 
 ###############################################################################
+# DOCUMENTATION
+
+.PHONY: doc
+doc: dep-docker
+	@echo
+	@echo make doc
+	@${DOCKER} run -v .:/data greenbone/doxygen doxygen /data/doxygen/Doxyfile
+
+###############################################################################
 # DEPENDENCIES
 
 .PHONY: dep-cmake
 dep-cmake:
 	@test -f "${CMAKE}" && test -x "${CMAKE}" || (echo "Missing CMAKE: ${CMAKE}" && exit 1)
+
+.PHONY: dep-docker
+dep-docker:
+	@test -f "${DOCKER}" && test -x "${DOCKER}" || (echo "Missing DOCKER: ${DOCKER}" && exit 1)

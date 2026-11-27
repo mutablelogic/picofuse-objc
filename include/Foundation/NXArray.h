@@ -102,6 +102,7 @@
 
 /**
  * @brief Inserts an object at an index, moving those from there along.
+ * @param object The object, which is retained.
  * @param index From zero to the number of objects, which adds it to the end.
  * @return YES if it was inserted, or NO if it's nil, the index is beyond the end, or
  * there isn't enough memory.

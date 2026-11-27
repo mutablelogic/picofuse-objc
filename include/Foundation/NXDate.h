@@ -76,6 +76,9 @@ typedef enum {
 
 /**
  * @brief Returns a date and time in UTC, or nil if it doesn't exist.
+ * @param year The year, from 1900 to 65535.
+ * @param month The month, from 1 to 12.
+ * @param day The day of the month, from 1.
  * @param hours From 0 to 23.
  * @param minutes From 0 to 59.
  * @param seconds From 0 to 59.
@@ -96,6 +99,7 @@ typedef enum {
  * - NXDateFormatRFC2822: "Sun, 06 Sep 2026 11:37:05 GMT", where the weekday is optional
  *   but must be right, and the zone can be "GMT", "UTC" or an offset such as "+0100".
  * - NXDateFormatLog: "2026-09-06 11:37:05", in UTC.
+ * @param format The format.
  * @return The date, in the time zone it was written in, or nil if it isn't a date in the
  * format or doesn't exist.
  */
@@ -198,6 +202,9 @@ typedef enum {
 
 /**
  * @brief Gets the date in UTC. Any of the arguments can be NULL.
+ * @param year The year.
+ * @param month The month, from 1 to 12.
+ * @param day The day of the month, from 1.
  * @param weekday The day of the week, from 0 for Sunday to 6.
  * @return YES if successful, or NO if the year isn't from 0 to 65535.
  */
