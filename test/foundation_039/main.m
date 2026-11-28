@@ -1,5 +1,5 @@
 // NXEnvironment and NXArgument: flags of every type, their defaults, positional
-// arguments, and why a command line doesn't parse
+// arguments, why a command line doesn't parse, and usage
 #include <Foundation/Foundation.h>
 #include <test/test.h>
 
@@ -98,6 +98,29 @@ test_main(0) {
   test_assert([environment parseFlags:flags() error:NULL] == nil);
 #endif
 
+  // Usage, with each flag's type and default, which works without a parse. There's none
+  // on a Pico, which has no command line.
+  environment = [NXEnvironment environmentWithArgc:0 argv:NULL];
+  NXStream *stream = [NXStream streamWithCapacity:1024];
+#if defined(SYSTEM_NAME_PICO)
+  test_assert(![environment writeUsageToStream:stream flags:flags()]);
+#else
+  test_assert([environment writeUsageToStream:stream flags:flags()]);
+  test_assert([stream seek:0 relative:NO]);
+  NXString *usage = [stream readStringWithLength:1024];
+  test_assert([usage isEqual:@"  --verbose, -v <bool> (default: false)\n"
+                             @"  --color <bool> (default: true, negate: --no-color)\n"
+                             @"  --count, -n <int> (default: 3)\n"
+                             @"  --big <uint> (default: 1)\n"
+                             @"  --rate <float> (default: 0.5)\n"
+                             @"  --label, -l <string> (default: none)\n"
+                             @"  --when <date> (default: 2026-01-01T00:00:00Z)\n"
+                             @"  --every <duration> (default: 1s)\n"]);
+#endif
+  test_assert(![environment writeUsageToStream:nil flags:flags()]);
+  test_assert(![environment writeUsageToStream:stream
+                                         flags:[NXArray arrayWithObjects:@"x", nil]]);
+
   // Flags which aren't arguments, or are given twice
   environment = [NXEnvironment environmentWithArgc:0 argv:NULL];
   test_assert([environment parseFlags:[NXArray arrayWithObjects:@"x", nil] error:&error] == nil);
@@ -105,6 +128,24 @@ test_main(0) {
   NXArray *twice = [NXArray arrayWithObjects:[NXArgument argumentWithName:@"x" short:nil],
                                              [NXArgument argumentWithName:@"x" short:nil], nil];
   test_assert([environment parseFlags:twice error:&error] == nil && error != nil);
+
+  // A short name which is another flag's, short or long, as picofuse finds either
+  NXArray *shorts = [NXArray arrayWithObjects:[NXArgument argumentWithName:@"one" short:@"v"],
+                                              [NXArgument argumentWithName:@"two" short:@"v"], nil];
+  test_assert([environment parseFlags:shorts error:&error] == nil &&
+              [error containsString:@"\"v\""]);
+  NXArray *crossed = [NXArray
+      arrayWithObjects:[NXArgument argumentWithName:@"foo" short:@"b"
+                                            default:[NXNumber numberWithInt32:1]],
+                       [NXArgument argumentWithName:@"b" short:nil
+                                            default:[NXNumber numberWithInt32:2]],
+                       nil];
+  test_assert([environment parseFlags:crossed error:&error] == nil &&
+              [error containsString:@"\"b\""]);
+  test_assert(![environment writeUsageToStream:[NXStream streamWithCapacity:64] flags:crossed]);
+  // Its own long name as its short name is just the one flag
+  NXArray *own = [NXArray arrayWithObjects:[NXArgument argumentWithName:@"x" short:@"x"], nil];
+  test_assert([environment parseFlags:own error:&error] != nil && error == nil);
   values = [environment parseFlags:nil error:&error];
   test_assert(values != nil && [values count] == 0 && error == nil);
 

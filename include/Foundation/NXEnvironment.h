@@ -49,10 +49,21 @@
  * @param error Set to why it couldn't parse, such as "unknown flag --x", or nil if it
  * doesn't matter.
  * @return The value of every flag, keyed by its long name: as it's given, or its
- * default. Or nil if a flag is unknown or a value isn't of its type. With nothing
- * after the program's name, it's every default, which is so on a Pico.
+ * default. Or nil if a flag isn't an NXArgument, a name, long or short, is another
+ * flag's, a flag given is unknown or a value isn't of its type. With nothing after the
+ * program's name, it's every default, which is so on a Pico.
  */
 - (NXMap *)parseFlags:(NXArray *)flags error:(NXString **)error;
+
+/**
+ * @brief Writes a line for each flag to a stream, with its type and its default, such
+ * as "  --count, -n <int> (default: 3)".
+ * @param stream The stream to write to.
+ * @param flags The NXArgument flags, as for parseFlags:error:.
+ * @return YES, or NO if a flag isn't an NXArgument, a name is another flag's, it
+ * couldn't be written, or it's a Pico, which has no command line.
+ */
+- (BOOL)writeUsageToStream:(NXStream *)stream flags:(NXArray *)flags;
 
 /**
  * @brief Returns the NXString arguments after the flags, from the last parse, or an

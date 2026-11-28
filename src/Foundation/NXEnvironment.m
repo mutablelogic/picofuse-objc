@@ -1,4 +1,5 @@
 #include "NXArgument+Private.h"
+#include "NXStream+Private.h"
 #include <Foundation/Foundation.h>
 #include <picofuse/sys.h>
 #include <runtime/gcc/runtime.h>
@@ -39,6 +40,80 @@ static id value_of(sys_env_arg_t *parsed, NXArgument *flag, const char *name, co
   }
 }
 
+// The default as picofuse writes it, for usage
+static NXString *default_text(NXArgument *flag) {
+  id value = [flag defaultValue];
+  switch ([flag type]) {
+  case sys_env_arg_type_bool:
+    return [value boolValue] ? @"true" : @"false";
+  case sys_env_arg_type_date:
+    return [(NXDate *)value stringWithFormat:NXDateFormatISO8601];
+  case sys_env_arg_type_duration:
+    return NXDurationDescription([(NXNumber *)value int64Value], 0);
+  case sys_env_arg_type_string:
+    return value;
+  default:
+    return [value description];
+  }
+}
+
+// Checks every flag is an NXArgument, and no name, long or short, is another flag's,
+// as picofuse looks a flag up by either. Returns their defaults by long name, or nil
+// and why not.
+static NXMap *defaults_of(NXArray *flags, NXString **error) {
+  NXMap *values = [NXMap mapWithCapacity:[flags count]];
+  NXMap *names = [NXMap mapWithCapacity:[flags count] * 2];
+  if (values == nil || names == nil) {
+    return nil;
+  }
+  for (id object in flags) {
+    if (!object_isKindOfClass(object, [NXArgument class])) {
+      if (error != NULL) {
+        *error = [NXString stringWithFormat:@"%@ isn't an argument", object];
+      }
+      return nil;
+    }
+    NXArgument *flag = object;
+    NXString *shortName = [flag shortName];
+    NXString *taken = [names containsObject:[flag name]] ? [flag name]
+                      : shortName != nil && [names containsObject:shortName] ? shortName
+                                                                            : nil;
+    if (taken != nil) {
+      if (error != NULL) {
+        *error = [NXString stringWithFormat:@"\"%@\" names more than one flag", taken];
+      }
+      return nil;
+    }
+    if (![values setObject:[flag defaultValue] forKey:[flag name]] ||
+        ![names setObject:flag forKey:[flag name]] ||
+        (shortName != nil && ![names setObject:flag forKey:shortName])) {
+      return nil;
+    }
+  }
+  return values;
+}
+
+// picofuse's flags, which end with one without a name, and are freed with sys_free.
+// Their strings are the flags' own, or in the autorelease pool.
+static sys_env_arg_flag_t *table_of(NXArray *flags, BOOL defaults) {
+  size_t count = [flags count];
+  sys_env_arg_flag_t *table = sys_malloc((count + 1) * sizeof(sys_env_arg_flag_t));
+  if (table == NULL) {
+    return NULL;
+  }
+  for (size_t i = 0; i <= count; i++) {
+    NXArgument *flag = i < count ? [flags objectAtIndex:i] : nil;
+    NXString *text = flag != nil && defaults ? default_text(flag) : nil;
+    table[i] = (sys_env_arg_flag_t){
+        .long_name = flag == nil ? NULL : [[flag name] cStr],
+        .short_name = [flag shortName] == nil ? NULL : [[flag shortName] cStr],
+        .type = flag == nil ? (sys_env_arg_type_t)0 : [flag type],
+        .value = text == nil ? NULL : [text cStr],
+    };
+  }
+  return table;
+}
+
 @implementation NXEnvironment
 
 + (NXEnvironment *)environmentWithArgc:(int)argc argv:(char **)argv {
@@ -71,29 +146,9 @@ static id value_of(sys_env_arg_t *parsed, NXArgument *flag, const char *name, co
   [_arguments release];
   _arguments = [[NXArray alloc] init];
 
-  // Every flag is an NXArgument, with a name of its own
-  size_t count = [flags count];
-  NXMap *values = [NXMap mapWithCapacity:count];
+  NXMap *values = defaults_of(flags, error);
   if (values == nil || _arguments == nil) {
     return nil;
-  }
-  for (id object in flags) {
-    if (!object_isKindOfClass(object, [NXArgument class])) {
-      if (error != NULL) {
-        *error = [NXString stringWithFormat:@"%@ isn't an argument", object];
-      }
-      return nil;
-    }
-    NXArgument *flag = object;
-    if ([values containsObject:[flag name]]) {
-      if (error != NULL) {
-        *error = [NXString stringWithFormat:@"--%@ is given twice", [flag name]];
-      }
-      return nil;
-    }
-    if (![values setObject:[flag defaultValue] forKey:[flag name]]) {
-      return nil;
-    }
   }
 
   // With nothing after the program's name, it's the defaults, which is so on a Pico,
@@ -102,19 +157,11 @@ static id value_of(sys_env_arg_t *parsed, NXArgument *flag, const char *name, co
     return values;
   }
 
-  // picofuse's flags, without defaults, which end with one without a name
-  sys_env_arg_flag_t *table = sys_malloc((count + 1) * sizeof(sys_env_arg_flag_t));
+  // Without defaults, so those which aren't given are NULL
+  size_t count = [flags count];
+  sys_env_arg_flag_t *table = table_of(flags, NO);
   if (table == NULL) {
     return nil;
-  }
-  for (size_t i = 0; i <= count; i++) {
-    NXArgument *flag = i < count ? [flags objectAtIndex:i] : nil;
-    table[i] = (sys_env_arg_flag_t){
-        .long_name = flag == nil ? NULL : [[flag name] cStr],
-        .short_name = [flag shortName] == nil ? NULL : [[flag shortName] cStr],
-        .type = flag == nil ? (sys_env_arg_type_t)0 : [flag type],
-        .value = NULL,
-    };
   }
 
   // picofuse's parser is one for the process, so what it returns is copied under a lock
@@ -158,6 +205,20 @@ static id value_of(sys_env_arg_t *parsed, NXArgument *flag, const char *name, co
     return nil;
   }
   return values;
+}
+
+- (BOOL)writeUsageToStream:(NXStream *)stream flags:(NXArray *)flags {
+  sys_iostream_t *iostream = [stream stream];
+  if (iostream == NULL || defaults_of(flags, NULL) == nil) {
+    return NO;
+  }
+  sys_env_arg_flag_t *table = table_of(flags, YES);
+  if (table == NULL) {
+    return NO;
+  }
+  BOOL written = sys_env_arg_usage(table, iostream);
+  sys_free(table);
+  return written;
 }
 
 - (NXArray *)arguments {
