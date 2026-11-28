@@ -541,3 +541,19 @@ objc_test(application_002
     application_002/main.m
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
+
+# NXApplicationMain: the command line, its features, --help, a bad flag, a class which
+# isn't a delegate, and on a host, a signal which terminates it. The last argument says
+# what's expected, and a Pico has no command line.
+objc_executable(application_003
+    application_003/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)
+if(CMAKE_CROSSCOMPILING)
+    objc_test_add(application_003 application_003)
+else()
+    objc_test_add(application_003 $<TARGET_FILE:application_003> --count=4 one)
+    objc_test_add(application_003_help $<TARGET_FILE:application_003> --help)
+    objc_test_add(application_003_bad $<TARGET_FILE:application_003> --count=abc)
+    objc_test_add(application_003_other $<TARGET_FILE:application_003> other)
+endif()

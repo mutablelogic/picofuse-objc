@@ -1,7 +1,9 @@
+#include "NXApplication+Private.h"
 #include "NXEventSource+Private.h"
 #include "NXRunLoop+Private.h"
 #include <Application/Application.h>
 #include <picofuse/hid.h>
+#include <picofuse/hw.h>
 #include <picofuse/sys.h>
 #include <runtime/gcc/runtime.h>
 
@@ -68,6 +70,7 @@ static size_t index_of(NXArray *array, id object) {
     }
     [_runLoop setDelegate:self];
     [_runLoop setEventHandler:handle_event poll:poll_hid];
+    _workers = 1;
   }
   return self;
 }
@@ -75,6 +78,8 @@ static size_t index_of(NXArray *array, id object) {
 - (void)dealloc {
   [_runLoop release];
   [_sources release];
+  [_environment release];
+  [_flags release];
   [super dealloc];
 }
 
@@ -84,6 +89,14 @@ static size_t index_of(NXArray *array, id object) {
 
 - (NXRunLoop *)runLoop {
   return _runLoop;
+}
+
+- (NXEnvironment *)environment {
+  return _environment;
+}
+
+- (NXMap *)flags {
+  return _flags;
 }
 
 - (uint8_t)workers {
@@ -205,11 +218,30 @@ static size_t index_of(NXArray *array, id object) {
   return YES;
 }
 
+// On worker 0, about every 50 ms: HID, and the hardware, which feeds the watchdog
 - (void)pollHID {
   hid_t *hid = _hid;
   if (hid != NULL) {
     hid_poll(hid);
   }
+  if (_hardware) {
+    hw_poll();
+  }
+}
+
+@end
+
+@implementation NXApplication (Main)
+
+- (void)setEnvironment:(NXEnvironment *)environment flags:(NXMap *)flags {
+  [_environment release];
+  [_flags release];
+  _environment = [environment retain];
+  _flags = [flags retain];
+}
+
+- (void)setHardware:(BOOL)hardware {
+  _hardware = hardware;
 }
 
 @end
