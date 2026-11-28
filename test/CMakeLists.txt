@@ -521,6 +521,12 @@ objc_test(foundation_038
     LIBRARIES picofuse-objc-foundation
 )
 
+# NXEnvironment and NXArgument: flags of every type, defaults and errors
+objc_test(foundation_039
+    foundation_039/main.m
+    LIBRARIES picofuse-objc-foundation
+)
+
 ###############################################################################
 # Application
 

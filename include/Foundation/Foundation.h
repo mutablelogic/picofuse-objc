@@ -99,5 +99,7 @@
 #include "NXWaitGroup.h"
 #include "NXAtomic.h"
 #include "NXZone.h"
+#include "NXArgument.h"
+#include "NXEnvironment.h"
 
 #endif // __OBJC__

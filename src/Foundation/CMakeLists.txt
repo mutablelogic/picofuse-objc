@@ -2,6 +2,7 @@ set(NAME "picofuse-objc-foundation")
 
 add_library(${NAME} STATIC
     NXArchive.m
+    NXArgument.m
     NXArray.m
     NXAtomic.m
     NXAutoreleasePool.m
@@ -11,6 +12,7 @@ add_library(${NAME} STATIC
     NXData.m
     NXDate.m
     NXDuration.m
+    NXEnvironment.m
     NXLock.m
     NXLog.m
     NXMap.m
