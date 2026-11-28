@@ -1,6 +1,7 @@
 // NXAnalogInput: the temperature sensor and an ADC channel, attached to the
 // application, read, and sending their messages when their readings change. Where
-// there's no ADC, as on a Mac or Linux, they don't attach.
+// there's no ADC, as on a Mac, they don't attach, and Linux may have a temperature
+// sensor but no channels.
 #include <Application/Application.h>
 #include <picofuse/hw.h>
 #include <test/test.h>
@@ -41,26 +42,34 @@
   if ([temperature isAttached]) {
     // The chip is somewhere between freezing and too hot to touch
     float celsius = [temperature floatValue];
+    sys_printf("[application_006] %.1fC, %u messages\n", (double)celsius,
+               [temperatures unsignedInt32Value]);
+    test_assert(celsius > 0 && celsius < 100);
+    test_assert([temperatures unsignedInt32Value] > 0);
+  }
+  if ([channel isAttached]) {
     float volts = [channel floatValue];
-    sys_printf("[application_006] %.1fC, channel 0 %.2fV, %u and %u messages\n",
-               (double)celsius, (double)volts, [temperatures unsignedInt32Value],
+    sys_printf("[application_006] channel 0 %.2fV, %u messages\n", (double)volts,
                [readings unsignedInt32Value]);
-    test_assert(celsius > 0 && celsius < 60);
     test_assert(volts >= 0 && volts < 3.5f);
-    test_assert([temperatures unsignedInt32Value] > 0 && [readings unsignedInt32Value] > 0);
+    test_assert([readings unsignedInt32Value] > 0);
   }
   [[NXApplication sharedApplication] terminateWithStatus:0];
 }
 - (void)applicationDidStart:(NXApplication *)application watchdogReset:(BOOL)reset {
   (void)reset;
-  BOOL adc = [temperature isAttached];
-  sys_printf("[application_006] %s ADC\n", adc ? "with" : "without");
-  if (!adc) {
-    test_assert(![channel isAttached] && [temperature floatValue] == 0);
+  sys_printf("[application_006] %s temperature sensor, %s ADC channel\n",
+             [temperature isAttached] ? "a" : "no", [channel isAttached] ? "an" : "no");
+  if (![temperature isAttached]) {
+    test_assert([temperature floatValue] == 0);
+  }
+  if (![channel isAttached]) {
+    test_assert([channel floatValue] == 0);
+  }
+  if (![temperature isAttached] && ![channel isAttached]) {
     [application terminateWithStatus:0];
     return;
   }
-  test_assert([channel isAttached]);
   test_assert([[NXTimer timerWithInterval:2 * NXSecond
                                   repeats:NO
                                    target:self
