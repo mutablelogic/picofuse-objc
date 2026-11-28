@@ -165,6 +165,9 @@ int NXApplicationMain(int argc, char **argv, NXApplicationFeatures features,
     stdio = sys_stdio_usb;
   }
   sys_init(argc, argv, 0, stdio);
+
+  // The hardware, before the delegate is made, so it can make pins
+  hw_init();
   NXAutoreleasePool *pool = [[NXAutoreleasePool alloc] init];
   if (pool == nil) {
     sys_panicf("NXApplicationMain out of memory");
@@ -196,8 +199,7 @@ int NXApplicationMain(int argc, char **argv, NXApplicationFeatures features,
     [application setDelegate:delegate];
     [application setWorkers:(features & NXApplicationFeatureMulticore) ? 0 : 1];
 
-    // The hardware, which the run loop polls, and which feeds the watchdog
-    hw_init();
+    // The run loop polls the hardware, which feeds the watchdog
     [application setHardware:YES];
     hw_watchdog_t *watchdog = NULL;
     if (features & NXApplicationFeatureWatchdog) {
@@ -229,13 +231,15 @@ int NXApplicationMain(int argc, char **argv, NXApplicationFeatures features,
     }
     [application setHardware:NO];
     [application setWatchdogReset:NO];
-    hw_exit();
     [application setDelegate:nil];
     [delegate release];
   }
 
-  // The system keeps running, as on a Pico sys_exit() halts, so this couldn't return
+  // The hardware stops once the delegate and the pool are released, which may have
+  // pins. The system keeps running, as on a Pico sys_exit() halts, so this couldn't
+  // return.
   [application setEnvironment:nil flags:nil];
   [pool release];
+  hw_exit();
   return status;
 }
