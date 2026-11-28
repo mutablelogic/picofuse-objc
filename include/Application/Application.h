@@ -20,5 +20,6 @@
 #include "NXRunLoop.h"
 #include "NXApplication.h"
 #include "NXTimer.h"
+#include "NXPin.h"
 
 #endif
