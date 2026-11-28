@@ -35,10 +35,11 @@ uint64_t NXRandUnsignedInt64(void);
  * @ingroup Foundation
  *
  * Numbers can't be changed. They're made in the current autorelease pool, other than
- * zero, true and false: there's only one of each of those, which is never
- * deallocated, and doesn't need a pool. Every number which is made as zero is the same
- * object, other than floating point negative zero, which is made in the pool like any
- * other.
+ * zeros, true and false: there's only one of each of those, which is never
+ * deallocated, and doesn't need a pool. There are three zeros, which are equal: a
+ * signed integer, an unsigned integer and a floating point number. Every number which
+ * is made as zero is the one of its kind, other than floating point negative zero,
+ * which is made in the pool like any other.
  *
  * A number can be returned as any type, whatever it was made from. As an integer, the
  * fraction of a floating point value is discarded, and it panics if the value is out of
@@ -64,8 +65,8 @@ uint64_t NXRandUnsignedInt64(void);
 
 /**
  * @brief Returns a number for a 16-bit unsigned integer.
- * @return The number, which is zeroValue if the value is zero, or nil if the allocation
- * failed.
+ * @return The number, which is the unsigned zero if the value is zero, or nil if the
+ * allocation failed.
  */
 + (NXNumber *)numberWithUnsignedInt16:(uint16_t)value;
 
@@ -78,8 +79,8 @@ uint64_t NXRandUnsignedInt64(void);
 
 /**
  * @brief Returns a number for a 32-bit unsigned integer.
- * @return The number, which is zeroValue if the value is zero, or nil if the allocation
- * failed.
+ * @return The number, which is the unsigned zero if the value is zero, or nil if the
+ * allocation failed.
  */
 + (NXNumber *)numberWithUnsignedInt32:(uint32_t)value;
 
@@ -92,22 +93,22 @@ uint64_t NXRandUnsignedInt64(void);
 
 /**
  * @brief Returns a number for a 64-bit unsigned integer.
- * @return The number, which is zeroValue if the value is zero, or nil if the allocation
- * failed.
+ * @return The number, which is the unsigned zero if the value is zero, or nil if the
+ * allocation failed.
  */
 + (NXNumber *)numberWithUnsignedInt64:(uint64_t)value;
 
 /**
  * @brief Returns a number for a 32-bit floating point value.
- * @return The number, which is zeroValue if the value is zero but not negative zero, or
- * nil if the allocation failed.
+ * @return The number, which is the floating point zero if the value is zero but not
+ * negative zero, or nil if the allocation failed.
  */
 + (NXNumber *)numberWithFloat32:(float)value;
 
 /**
  * @brief Returns a number for a 64-bit floating point value.
- * @return The number, which is zeroValue if the value is zero but not negative zero, or
- * nil if the allocation failed.
+ * @return The number, which is the floating point zero if the value is zero but not
+ * negative zero, or nil if the allocation failed.
  */
 + (NXNumber *)numberWithFloat64:(double)value;
 
@@ -156,7 +157,7 @@ uint64_t NXRandUnsignedInt64(void);
 + (NXNumber *)falseValue;
 
 /**
- * @brief Returns the number for zero.
+ * @brief Returns the number for zero, as a signed integer.
  */
 + (NXNumber *)zeroValue;
 

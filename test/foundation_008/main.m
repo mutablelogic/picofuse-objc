@@ -43,7 +43,8 @@ static void equality(void) {
   }
 }
 
-// There's only one zero, true and false, and they don't need a pool
+// There's only one of each zero, true and false, and they don't need a pool. The
+// zeros are a signed integer, an unsigned integer and a float, and are equal.
 static void statics(void) {
   NXNumber *zero = [NXNumber zeroValue];
   NXNumber *yes = [NXNumber trueValue];
@@ -54,11 +55,26 @@ static void statics(void) {
   test_assert(yes == [NXNumber numberWithBool:YES]);
   test_assert(no == [NXNumber numberWithBool:NO]);
   test_assert(zero == [NXNumber numberWithInt16:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt16:0]);
   test_assert(zero == [NXNumber numberWithInt32:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt32:0]);
   test_assert(zero == [NXNumber numberWithInt64:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt64:0]);
+  NXNumber *unsignedZero = [NXNumber numberWithUnsignedInt16:0];
+  test_assert(unsignedZero != zero);
+  test_assert(unsignedZero == [NXNumber numberWithUnsignedInt32:0]);
+  test_assert(unsignedZero == [NXNumber numberWithUnsignedInt64:0]);
+  NXNumber *floatZero = [NXNumber numberWithFloat64:0];
+  test_assert(floatZero != zero && floatZero != unsignedZero);
+  test_assert(floatZero == [NXNumber numberWithFloat32:0]);
+  test_assert([zero isEqual:unsignedZero] && [zero isEqual:floatZero] &&
+              [unsignedZero isEqual:floatZero]);
+  test_assert([zero hash] == [unsignedZero hash] && [zero hash] == [floatZero hash]);
+  test_assert([zero compare:floatZero] == NXComparisonSame &&
+              [unsignedZero compare:floatZero] == NXComparisonSame);
+  test_assert([[unsignedZero description] isEqual:@"0"] &&
+              [[floatZero description] isEqual:@"0"]);
+  test_assert([floatZero float64Value] == 0.0 && [unsignedZero unsignedInt64Value] == 0);
+  [unsignedZero release]; // static, so it's not deallocated
+  [floatZero release];
+  test_assert([NXNumber numberWithFloat32:0] == floatZero);
 
   test_assert(![zero boolValue] && [yes boolValue] && ![no boolValue]);
   test_assert([zero int16Value] == 0 && [zero unsignedInt64Value] == 0);
@@ -176,10 +192,11 @@ static void floats(void) {
                   unsignedInt64Value] == UINT64_MAX - 2047);
   test_assert([[NXNumber numberWithFloat64:32767.9] int16Value] == INT16_MAX);
 
-  // Zero, and negative zero which is another object but equal to it
-  NXNumber *zero = [NXNumber zeroValue];
+  // Zero, which is the float zero, and negative zero which is another object but equal
+  // to it
+  NXNumber *zero = [NXNumber numberWithFloat64:0];
   test_assert([NXNumber numberWithFloat32:0] == zero);
-  test_assert([NXNumber numberWithFloat64:0] == zero);
+  test_assert(zero != [NXNumber zeroValue] && [zero isEqual:[NXNumber zeroValue]]);
   f = [NXNumber numberWithFloat32:-0.0f];
   d = [NXNumber numberWithFloat64:-0.0];
   test_assert(f != zero && d != zero && ![f boolValue] && ![d boolValue]);
