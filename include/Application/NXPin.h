@@ -104,6 +104,7 @@ typedef enum {
   SEL _selector;         ///< Has the input as its argument
   void *_device;         ///< The HID device while it's attached, or NULL
   uint16_t _attachment;  ///< Which attachment it's in, which its HID events carry
+  BOOL _userButton;      ///< YES for the board's user button
 }
 
 /**
@@ -129,6 +130,17 @@ typedef enum {
                              pull:(NXPinPull)pull
                            target:(id)target
                          selector:(SEL)selector;
+
+/**
+ * @brief Returns an input on the board's user button, which isn't attached.
+ * @param target What the message is sent to when it's pressed or released, which is
+ * retained.
+ * @param selector A method of the target which has the input as its one argument.
+ * @return The input, or nil if the board has no user button, such as a Pico W, whose
+ * BOOTSEL button isn't a GPIO, or a Mac or Linux. The button is pulled up and pressing
+ * it connects it to ground, so -boolValue is NO while it's pressed.
+ */
++ (NXDigitalInput *)userButtonWithTarget:(id)target selector:(SEL)selector;
 
 /**
  * @brief Returns whether it's pulled up, down, or neither.

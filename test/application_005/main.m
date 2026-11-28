@@ -118,6 +118,15 @@ test_main(0) {
     test_assert([[output description] containsString:@"high"]);
   }
 
+  // The user button, which a Pico W, a Mac and Linux don't have
+  NXDigitalInput *button = [NXDigitalInput userButtonWithTarget:watcher
+                                                         selector:@selector(changed:)];
+  sys_printf("[application_005] %s user button\n", button != nil ? "with a" : "without a");
+  if (button != nil) {
+    test_assert([button pull] == NXPinPullUp && ![button isAttached]);
+  }
+  test_assert([NXDigitalInput userButtonWithTarget:watcher selector:@selector(event)] == nil);
+
   // Inputs which can't be made
   test_assert([NXDigitalInput inputWithPin:UP_PIN pull:NXPinPullUp target:nil
                                   selector:@selector(changed:)] == nil);

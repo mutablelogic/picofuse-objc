@@ -124,6 +124,27 @@ static uint16_t attachments = 0;
   return input;
 }
 
++ (NXDigitalInput *)userButtonWithTarget:(id)target selector:(SEL)selector {
+  // Which pin it is, if the board has one
+  hw_gpio_t *gpio = hw_gpio_init_userbutton();
+  if (gpio == NULL) {
+    return nil;
+  }
+  uint8_t bank = hw_gpio_bank(gpio);
+  uint8_t pin = hw_gpio_pin(gpio);
+  hw_gpio_deinit(gpio);
+
+  NXDigitalInput *input = [self inputWithBank:bank
+                                          pin:pin
+                                         pull:NXPinPullUp
+                                       target:target
+                                     selector:selector];
+  if (input != nil) {
+    input->_userButton = YES;
+  }
+  return input;
+}
+
 - (void)dealloc {
   [_target release];
   [super dealloc];
@@ -165,16 +186,14 @@ static uint16_t attachments = 0;
         attachments = attachments == UINT16_MAX ? 1 : attachments + 1;
         _attachment = attachments;
       }
-      switch (_pull) {
-      case NXPinPullUp:
+      if (_userButton) {
+        _device = hid_register_user_button(hid, _attachment, NULL);
+      } else if (_pull == NXPinPullUp) {
         _device = hid_register_gpio_pullup(hid, _bank, _pin, _attachment, NULL);
-        break;
-      case NXPinPullDown:
+      } else if (_pull == NXPinPullDown) {
         _device = hid_register_gpio_pulldown(hid, _bank, _pin, _attachment, NULL);
-        break;
-      default:
+      } else {
         _device = hid_register_gpio_input(hid, _bank, _pin, _attachment, NULL);
-        break;
       }
     }
     attached = _device != NULL;
@@ -200,10 +219,10 @@ static uint16_t attachments = 0;
   return owns;
 }
 
-// Sends the message, while it's still attached
+// Sends the message, if the event is still this attachment's: it may have been
+// detached and attached again since the application found it was
 - (void)handleEvent:(hid_event_t *)event {
-  (void)event;
-  if (![self isAttached]) {
+  if (![self ownsEvent:event]) {
     return;
   }
   [self retain];
