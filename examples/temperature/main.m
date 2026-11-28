@@ -1,5 +1,5 @@
-// Prints the temperature sensor's reading every --interval, which on a Pico, with no
-// command line, is its default, until it's interrupted
+// Prints the temperature sensor's reading whenever it changes, which is read every
+// --interval, its default on a Pico, with no command line, until it's interrupted
 #include <Application/Application.h>
 
 @interface Thermometer : NXObject <NXApplicationDelegate> {
@@ -22,13 +22,9 @@
   [super dealloc];
 }
 
+// HID reads it every interval, and this is sent when the reading changes
 - (void)changed:(NXAnalogInput *)sensor {
-  (void)sensor;
-}
-
-- (void)print:(NXTimer *)timer {
-  (void)timer;
-  NXLog(@"%.1fC", (double)[_sensor floatValue]);
+  NXLog(@"%.1fC", (double)[sensor floatValue]);
 }
 
 - (void)applicationDidStart:(NXApplication *)application watchdogReset:(BOOL)reset {
@@ -40,22 +36,14 @@
     return;
   }
 
-  // The sensor, which can only be read while it's attached
+  // The sensor, which sends its readings while it's attached
   _sensor = [[NXAnalogInput temperatureWithInterval:interval
                                              target:self
                                            selector:@selector(changed:)] retain];
   if (![application attachEventSource:_sensor]) {
     NXLog(@"There's no temperature sensor");
     [application terminateWithStatus:1];
-    return;
   }
-
-  // Printed now, and then every interval
-  [self print:nil];
-  [[NXTimer timerWithInterval:interval
-                      repeats:YES
-                       target:self
-                     selector:@selector(print:)] schedule];
 }
 
 @end
