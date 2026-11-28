@@ -542,6 +542,12 @@ objc_test(application_002
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
 
+# NXDigitalOutput and NXDigitalInput, which are pins, where there's GPIO
+objc_test(application_005
+    application_005/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)
+
 # NXAnalogInput: the temperature sensor and an ADC channel, where there's an ADC
 objc_test(application_006
     application_006/main.m

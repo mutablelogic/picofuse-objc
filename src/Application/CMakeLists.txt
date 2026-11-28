@@ -3,6 +3,7 @@ set(NAME "picofuse-objc-application")
 add_library(${NAME} STATIC
     NXApplication.m
     NXApplicationMain.m
+    NXPin.m
     NXAnalogInput.m
     NXRunLoop.m
     NXTimer.m
