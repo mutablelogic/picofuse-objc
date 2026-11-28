@@ -75,7 +75,8 @@
     [[NXApplication sharedApplication] terminateWithStatus:4];
   }
 }
-- (void)applicationDidStart:(NXApplication *)application {
+- (void)applicationDidStart:(NXApplication *)application watchdogReset:(BOOL)reset {
+  test_assert(!reset);
   (void)application;
 
   // More timers than HID has, on the first run: those without a HID timer were

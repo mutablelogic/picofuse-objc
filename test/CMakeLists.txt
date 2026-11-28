@@ -541,3 +541,34 @@ objc_test(application_002
     application_002/main.m
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
+
+# NXApplicationMain: the command line, its features, --help, a bad flag, a class which
+# isn't a delegate, and on a host, a signal which terminates it. The last argument says
+# what's expected, and a Pico has no command line.
+objc_executable(application_003
+    application_003/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)
+if(CMAKE_CROSSCOMPILING)
+    # It runs for longer than the watchdog's timeout, so than the runner waits for
+    add_test(NAME application_003
+        COMMAND ${TESTRUNNER} --timeout 30 --target target/${_chip}.cfg
+                $<TARGET_FILE:application_003>)
+    set_tests_properties(application_003 PROPERTIES RESOURCE_LOCK board)
+else()
+    objc_test_add(application_003 $<TARGET_FILE:application_003> --count=4 one)
+    objc_test_add(application_003_help $<TARGET_FILE:application_003> --help)
+    objc_test_add(application_003_bad $<TARGET_FILE:application_003> --count=abc)
+    objc_test_add(application_003_other $<TARGET_FILE:application_003> other)
+endif()
+
+# The watchdog restarts a device whose run loop stops, and the delegate is told. Only a
+# Pico has a watchdog to test. Not registered with ctest: the test runner often doesn't
+# see RTT again after the restart. Run it by hand, with a longer timeout:
+#   testrunner --timeout 30 --target target/<chip>.cfg test/application_004.elf
+if(CMAKE_CROSSCOMPILING)
+    objc_executable(application_004
+        application_004/main.m
+        LIBRARIES picofuse-objc-foundation picofuse-objc-application
+    )
+endif()

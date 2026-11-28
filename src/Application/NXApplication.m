@@ -1,7 +1,9 @@
+#include "NXApplication+Private.h"
 #include "NXEventSource+Private.h"
 #include "NXRunLoop+Private.h"
 #include <Application/Application.h>
 #include <picofuse/hid.h>
+#include <picofuse/hw.h>
 #include <picofuse/sys.h>
 #include <runtime/gcc/runtime.h>
 
@@ -11,14 +13,6 @@ static NXApplication *shared = nil;
 - (BOOL)handleHIDEvent:(sys_event_t)event;
 - (void)pollHID;
 @end
-
-// Sends an optional message to a delegate, if it has the method
-static void tell(id delegate, SEL selector, id argument) {
-  if (delegate != nil && class_respondsToSelector(object_getClass(delegate), selector)) {
-    void (*imp)(void) = (void (*)(void))objc_msg_lookup(delegate, selector);
-    ((void (*)(id, SEL, id))imp)(delegate, selector, argument);
-  }
-}
 
 // The run loop's event handler and poll function, for HID
 static BOOL handle_event(sys_event_t event) {
@@ -68,6 +62,7 @@ static size_t index_of(NXArray *array, id object) {
     }
     [_runLoop setDelegate:self];
     [_runLoop setEventHandler:handle_event poll:poll_hid];
+    _workers = 1;
   }
   return self;
 }
@@ -75,15 +70,26 @@ static size_t index_of(NXArray *array, id object) {
 - (void)dealloc {
   [_runLoop release];
   [_sources release];
+  [_environment release];
+  [_flags release];
   [super dealloc];
 }
 
 - (int)run {
+  _signal = 0;
   return [_runLoop runWithWorkers:_workers];
 }
 
 - (NXRunLoop *)runLoop {
   return _runLoop;
+}
+
+- (NXEnvironment *)environment {
+  return _environment;
+}
+
+- (NXMap *)flags {
+  return _flags;
 }
 
 - (uint8_t)workers {
@@ -163,14 +169,22 @@ static size_t index_of(NXArray *array, id object) {
     }
   }
   (void)failed; // released with the pool, outside the lock
-  tell(_delegate, @selector(applicationDidStart:), self);
+  SEL selector = @selector(applicationDidStart:watchdogReset:);
+  if (_delegate != nil && class_respondsToSelector(object_getClass(_delegate), selector)) {
+    void (*imp)(void) = (void (*)(void))objc_msg_lookup(_delegate, selector);
+    ((void (*)(id, SEL, id, BOOL))imp)(_delegate, selector, self, _watchdogReset);
+  }
 }
 
 // Once every worker has finished, the delegate is told, then every source is detached
 // and HID stops
 - (void)runLoopWillStop:(NXRunLoop *)runLoop {
   (void)runLoop;
-  tell(_delegate, @selector(applicationWillTerminate:), self);
+  SEL selector = @selector(applicationWillTerminate:signal:);
+  if (_delegate != nil && class_respondsToSelector(object_getClass(_delegate), selector)) {
+    void (*imp)(void) = (void (*)(void))objc_msg_lookup(_delegate, selector);
+    ((void (*)(id, SEL, id, int))imp)(_delegate, selector, self, _signal);
+  }
   @synchronized(self) {
     for (id<NXEventSourcePrivate> source in _sources) {
       [source detachFromHID:_hid];
@@ -205,11 +219,39 @@ static size_t index_of(NXArray *array, id object) {
   return YES;
 }
 
+// On worker 0, about every 50 ms: HID, and the hardware, which feeds the watchdog
 - (void)pollHID {
   hid_t *hid = _hid;
   if (hid != NULL) {
     hid_poll(hid);
   }
+  if (_hardware) {
+    hw_poll();
+  }
+}
+
+@end
+
+@implementation NXApplication (Main)
+
+- (void)setEnvironment:(NXEnvironment *)environment flags:(NXMap *)flags {
+  [_environment release];
+  [_flags release];
+  _environment = [environment retain];
+  _flags = [flags retain];
+}
+
+- (void)setHardware:(BOOL)hardware {
+  _hardware = hardware;
+}
+
+- (void)setWatchdogReset:(BOOL)reset {
+  _watchdogReset = reset;
+}
+
+- (void)terminateWithSignal:(int)signal {
+  _signal = signal;
+  [self terminateWithStatus:128 + signal];
 }
 
 @end

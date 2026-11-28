@@ -97,7 +97,8 @@ static NXAtomic *finished; // events which have finished, slowly
 - (int)wrong:(int)value {
   return value;
 }
-- (void)applicationDidStart:(NXApplication *)application {
+- (void)applicationDidStart:(NXApplication *)application watchdogReset:(BOOL)reset {
+  test_assert(!reset);
   [started increment];
   NXRunLoop *runLoop = [application runLoop];
   test_assert([runLoop perform:@selector(message) target:self]);
@@ -106,8 +107,9 @@ static NXAtomic *finished; // events which have finished, slowly
   test_assert(![runLoop perform:@selector(messageWith:) target:self]);
   test_assert(![runLoop perform:@selector(nothing) target:self]);
 }
-- (void)applicationWillTerminate:(NXApplication *)application {
+- (void)applicationWillTerminate:(NXApplication *)application signal:(int)signal {
   (void)application;
+  test_assert(signal == 0);
   [stopped increment];
 }
 @end
@@ -158,7 +160,7 @@ test_main(0) {
   // The application, with messages sent by its run loop
   NXApplication *application = [NXApplication sharedApplication];
   test_assert(application != nil && [NXApplication sharedApplication] == application);
-  test_assert([application workers] == 0);
+  test_assert([application workers] == 1); // the default
   [application setDelegate:poster];
   [started setUnsignedInt32Value:0];
   [stopped setUnsignedInt32Value:0];
@@ -166,8 +168,8 @@ test_main(0) {
   test_assert(poster->messages == 1 && [poster->argument isEqual:@"done"]);
   test_assert([started unsignedInt32Value] == 1 && [stopped unsignedInt32Value] == 1);
 
-  // And again, on one worker
-  [application setWorkers:1];
+  // And again, on every core
+  [application setWorkers:0];
   test_assert([application run] == 3 && poster->messages == 2);
 
   [poster release];
