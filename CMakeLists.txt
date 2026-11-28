@@ -78,6 +78,9 @@ add_compile_options(-Wall -Wextra $<$<COMPILE_LANGUAGE:OBJC>:-std=gnu11>)
 # Install rules
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/install.cmake)
 
+# What a program outside this tree builds with: see examples/helloworld
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/cmake/picofuse_objc.cmake DESTINATION cmake)
+
 # Objective-C runtime
 add_subdirectory(src/runtime/gcc)
 
