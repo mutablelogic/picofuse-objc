@@ -20,6 +20,10 @@
 
 @implementation NXNumberUnsignedInt16
 
+- (BOOL)isUnsigned {
+  return YES;
+}
+
 - (id)initWithUnsignedInt16:(uint16_t)value {
   self = [super init];
   if (self != nil) {
@@ -54,6 +58,10 @@
 
 @implementation NXNumberUnsignedInt32
 
+- (BOOL)isUnsigned {
+  return YES;
+}
+
 - (id)initWithUnsignedInt32:(uint32_t)value {
   self = [super init];
   if (self != nil) {
@@ -87,6 +95,10 @@
 @end
 
 @implementation NXNumberUnsignedInt64
+
+- (BOOL)isUnsigned {
+  return YES;
+}
 
 - (id)initWithUnsignedInt64:(uint64_t)value {
   self = [super init];

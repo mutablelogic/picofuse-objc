@@ -1,3 +1,4 @@
+#include "../../src/Foundation/NXNumber+Private.h"
 #include <Foundation/Foundation.h>
 #include <test/test.h>
 
@@ -43,7 +44,42 @@ static void equality(void) {
   }
 }
 
-// There's only one zero, true and false, and they don't need a pool
+// A number's kind: a floating point number, an unsigned integer, or neither
+static void kind(NXNumber *number, BOOL isFloat, BOOL isUnsigned) {
+  test_assert(number != nil);
+  test_assert([number isFloat] == isFloat);
+  test_assert([number isUnsigned] == isUnsigned);
+}
+
+// Each factory's numbers are of its kind, and so is each zero
+static void kinds(void) {
+  kind([NXNumber zeroValue], NO, NO);
+  kind([NXNumber numberWithInt16:0], NO, NO);
+  kind([NXNumber numberWithInt32:0], NO, NO);
+  kind([NXNumber numberWithInt64:0], NO, NO);
+  kind([NXNumber numberWithUnsignedInt16:0], NO, YES);
+  kind([NXNumber numberWithUnsignedInt32:0], NO, YES);
+  kind([NXNumber numberWithUnsignedInt64:0], NO, YES);
+  kind([NXNumber numberWithFloat32:0], YES, NO);
+  kind([NXNumber numberWithFloat64:0], YES, NO);
+  kind([NXNumber numberWithFloat32:-0.0f], YES, NO);
+  kind([NXNumber numberWithFloat64:-0.0], YES, NO);
+
+  kind([NXNumber numberWithInt16:-1], NO, NO);
+  kind([NXNumber numberWithInt32:1], NO, NO);
+  kind([NXNumber numberWithInt64:INT64_MIN], NO, NO);
+  kind([NXNumber numberWithUnsignedInt16:1], NO, YES);
+  kind([NXNumber numberWithUnsignedInt32:UINT32_MAX], NO, YES);
+  kind([NXNumber numberWithUnsignedInt64:UINT64_MAX], NO, YES);
+  kind([NXNumber numberWithFloat32:1.5f], YES, NO);
+  kind([NXNumber numberWithFloat64:-2.5], YES, NO);
+
+  kind([NXNumber trueValue], NO, NO);
+  kind([NXNumber falseValue], NO, NO);
+}
+
+// There's only one of each zero, true and false, and they don't need a pool. The
+// zeros are a signed integer, an unsigned integer and a float, and are equal.
 static void statics(void) {
   NXNumber *zero = [NXNumber zeroValue];
   NXNumber *yes = [NXNumber trueValue];
@@ -54,11 +90,26 @@ static void statics(void) {
   test_assert(yes == [NXNumber numberWithBool:YES]);
   test_assert(no == [NXNumber numberWithBool:NO]);
   test_assert(zero == [NXNumber numberWithInt16:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt16:0]);
   test_assert(zero == [NXNumber numberWithInt32:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt32:0]);
   test_assert(zero == [NXNumber numberWithInt64:0]);
-  test_assert(zero == [NXNumber numberWithUnsignedInt64:0]);
+  NXNumber *unsignedZero = [NXNumber numberWithUnsignedInt16:0];
+  test_assert(unsignedZero != zero);
+  test_assert(unsignedZero == [NXNumber numberWithUnsignedInt32:0]);
+  test_assert(unsignedZero == [NXNumber numberWithUnsignedInt64:0]);
+  NXNumber *floatZero = [NXNumber numberWithFloat64:0];
+  test_assert(floatZero != zero && floatZero != unsignedZero);
+  test_assert(floatZero == [NXNumber numberWithFloat32:0]);
+  test_assert([zero isEqual:unsignedZero] && [zero isEqual:floatZero] &&
+              [unsignedZero isEqual:floatZero]);
+  test_assert([zero hash] == [unsignedZero hash] && [zero hash] == [floatZero hash]);
+  test_assert([zero compare:floatZero] == NXComparisonSame &&
+              [unsignedZero compare:floatZero] == NXComparisonSame);
+  test_assert([[unsignedZero description] isEqual:@"0"] &&
+              [[floatZero description] isEqual:@"0"]);
+  test_assert([floatZero float64Value] == 0.0 && [unsignedZero unsignedInt64Value] == 0);
+  [unsignedZero release]; // static, so it's not deallocated
+  [floatZero release];
+  test_assert([NXNumber numberWithFloat32:0] == floatZero);
 
   test_assert(![zero boolValue] && [yes boolValue] && ![no boolValue]);
   test_assert([zero int16Value] == 0 && [zero unsignedInt64Value] == 0);
@@ -176,10 +227,11 @@ static void floats(void) {
                   unsignedInt64Value] == UINT64_MAX - 2047);
   test_assert([[NXNumber numberWithFloat64:32767.9] int16Value] == INT16_MAX);
 
-  // Zero, and negative zero which is another object but equal to it
-  NXNumber *zero = [NXNumber zeroValue];
+  // Zero, which is the float zero, and negative zero which is another object but equal
+  // to it
+  NXNumber *zero = [NXNumber numberWithFloat64:0];
   test_assert([NXNumber numberWithFloat32:0] == zero);
-  test_assert([NXNumber numberWithFloat64:0] == zero);
+  test_assert(zero != [NXNumber zeroValue] && [zero isEqual:[NXNumber zeroValue]]);
   f = [NXNumber numberWithFloat32:-0.0f];
   d = [NXNumber numberWithFloat64:-0.0];
   test_assert(f != zero && d != zero && ![f boolValue] && ![d boolValue]);
@@ -256,6 +308,7 @@ test_main(0) {
   statics();
   numbers();
   floats();
+  kinds();
   randoms();
   NXNumber *kept = [[NXNumber numberWithInt32:-7] retain];
   [pool release];

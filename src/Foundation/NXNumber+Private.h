@@ -17,6 +17,11 @@
  */
 - (BOOL)isFloat;
 
+/*
+ * Returns YES if it's an unsigned integer
+ */
+- (BOOL)isUnsigned;
+
 @end
 
 /*
@@ -25,7 +30,19 @@
 @interface NXNumberStatic : NXNumber
 @end
 
+/*
+ * The zeros, which are equal: a signed integer, an unsigned integer and a floating point
+ * number, so a zero keeps its kind
+ */
 @interface NXNumberZero : NXNumberStatic
+@end
+
+@interface NXNumberUnsignedZero : NXNumberZero
++ (NXNumber *)unsignedZeroValue;
+@end
+
+@interface NXNumberFloatZero : NXNumberZero
++ (NXNumber *)floatZeroValue;
 @end
 
 @interface NXNumberBool : NXNumberStatic {
