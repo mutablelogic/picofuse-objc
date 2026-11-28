@@ -542,6 +542,12 @@ objc_test(application_002
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
 
+# NXAnalogInput: the temperature sensor and an ADC channel, where there's an ADC
+objc_test(application_006
+    application_006/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)
+
 # NXApplicationMain: the command line, its features, --help, a bad flag, a class which
 # isn't a delegate, and on a host, a signal which terminates it. The last argument says
 # what's expected, and a Pico has no command line.
