@@ -172,7 +172,7 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 
 + (NXNumber *)numberWithUnsignedInt16:(uint16_t)value {
   if (value == 0) {
-    return [NXNumberZero zeroValue];
+    return [NXNumberUnsignedZero unsignedZeroValue];
   }
   return [[[NXNumberUnsignedInt16 alloc] initWithUnsignedInt16:value] autorelease];
 }
@@ -186,7 +186,7 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 
 + (NXNumber *)numberWithUnsignedInt32:(uint32_t)value {
   if (value == 0) {
-    return [NXNumberZero zeroValue];
+    return [NXNumberUnsignedZero unsignedZeroValue];
   }
   return [[[NXNumberUnsignedInt32 alloc] initWithUnsignedInt32:value] autorelease];
 }
@@ -200,21 +200,21 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 
 + (NXNumber *)numberWithUnsignedInt64:(uint64_t)value {
   if (value == 0) {
-    return [NXNumberZero zeroValue];
+    return [NXNumberUnsignedZero unsignedZeroValue];
   }
   return [[[NXNumberUnsignedInt64 alloc] initWithUnsignedInt64:value] autorelease];
 }
 
 + (NXNumber *)numberWithFloat32:(float)value {
   if (value == 0 && !__builtin_signbit(value)) {
-    return [NXNumberZero zeroValue];
+    return [NXNumberFloatZero floatZeroValue];
   }
   return [[[NXNumberFloat32 alloc] initWithFloat32:value] autorelease];
 }
 
 + (NXNumber *)numberWithFloat64:(double)value {
   if (value == 0 && !__builtin_signbit(value)) {
-    return [NXNumberZero zeroValue];
+    return [NXNumberFloatZero floatZeroValue];
   }
   return [[[NXNumberFloat64 alloc] initWithFloat64:value] autorelease];
 }
@@ -368,6 +368,10 @@ uint64_t NXRandUnsignedInt64(void) { return sys_random_uint64(); }
 }
 
 - (BOOL)isFloat {
+  return NO;
+}
+
+- (BOOL)isUnsigned {
   return NO;
 }
 

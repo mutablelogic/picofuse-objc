@@ -7,6 +7,8 @@
 // GLOBALS
 
 static NXStatic zero_storage;
+static NXStatic unsigned_zero_storage;
+static NXStatic float_zero_storage;
 static NXStatic true_storage;
 static NXStatic false_storage;
 
@@ -31,6 +33,42 @@ NX_STATIC_METHODS
 
 - (NXString *)description {
   return @"0";
+}
+
+@end
+
+@implementation NXNumberUnsignedZero
+
++ (void)initialize {
+  if (self == [NXNumberUnsignedZero class]) {
+    NXStaticInstance(&unsigned_zero_storage, self);
+  }
+}
+
++ (NXNumber *)unsignedZeroValue {
+  return (NXNumber *)(void *)&unsigned_zero_storage;
+}
+
+- (BOOL)isUnsigned {
+  return YES;
+}
+
+@end
+
+@implementation NXNumberFloatZero
+
++ (void)initialize {
+  if (self == [NXNumberFloatZero class]) {
+    NXStaticInstance(&float_zero_storage, self);
+  }
+}
+
++ (NXNumber *)floatZeroValue {
+  return (NXNumber *)(void *)&float_zero_storage;
+}
+
+- (BOOL)isFloat {
+  return YES;
 }
 
 @end
