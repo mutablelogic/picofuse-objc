@@ -8,6 +8,10 @@
 // Conversions averaged for each reading
 #define SAMPLES 8
 
+// Numbers each attachment, which its events carry as the device's userdata, so those
+// from one before, or from another input which had the same HID device, are ignored
+static uintptr_t attachments = 0;
+
 @interface NXAnalogInput (Private) <NXEventSourcePrivate>
 + (NXAnalogInput *)inputWithChannel:(uint8_t)channel
                         temperature:(BOOL)temperature
@@ -118,8 +122,13 @@
     if (_device == NULL) {
       NXDuration ms = (_interval - 1) / NXMillisecond + 1;
       uint32_t interval = ms > UINT32_MAX ? UINT32_MAX : (uint32_t)ms;
-      _device = _temperature ? hid_register_temperature(hid, interval, NULL)
-                             : hid_register_adc(hid, _channel, NULL, SAMPLES, interval, NULL);
+      @synchronized([NXAnalogInput class]) {
+        _attachment = ++attachments;
+      }
+      void *userdata = (void *)_attachment;
+      _device = _temperature
+                    ? hid_register_temperature(hid, interval, userdata)
+                    : hid_register_adc(hid, _channel, NULL, SAMPLES, interval, userdata);
     }
     attached = _device != NULL;
   }
@@ -138,13 +147,15 @@
 - (BOOL)ownsEvent:(hid_event_t *)event {
   BOOL owns;
   @synchronized(self) {
-    owns = _device != NULL && event->type == hid_event_type_metric && event->device == _device;
+    owns = _device != NULL && event->type == hid_event_type_metric &&
+           event->device == _device && event->data.metric.userdata == (void *)_attachment;
   }
   return owns;
 }
 
-// Sends the message, if it's still attached. The reading is -floatValue, which is
-// read when it's asked for, so it's never an earlier attachment's.
+// Sends the message, if the event is still this attachment's: it may have been
+// detached and attached again since the application found it was. The reading is
+// -floatValue, which is read when it's asked for.
 - (void)handleEvent:(hid_event_t *)event {
   if (![self ownsEvent:event]) {
     return;

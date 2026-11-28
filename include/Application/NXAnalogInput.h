@@ -28,6 +28,7 @@
   id _target;               ///< Retained
   SEL _selector;            ///< Has the input as its argument
   void *_device;            ///< The HID device while it's attached, or NULL
+  uintptr_t _attachment;    ///< Which attachment it's in, which its HID events carry
 }
 
 /**
