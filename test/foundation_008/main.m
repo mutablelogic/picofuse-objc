@@ -1,3 +1,4 @@
+#include "../../src/Foundation/NXNumber+Private.h"
 #include <Foundation/Foundation.h>
 #include <test/test.h>
 
@@ -41,6 +42,40 @@ static void equality(void) {
     test_assert(![values[i].number isEqual:@"1"]);
     test_assert(![values[i].number isEqual:[NXNumber class]]);
   }
+}
+
+// A number's kind: a floating point number, an unsigned integer, or neither
+static void kind(NXNumber *number, BOOL isFloat, BOOL isUnsigned) {
+  test_assert(number != nil);
+  test_assert([number isFloat] == isFloat);
+  test_assert([number isUnsigned] == isUnsigned);
+}
+
+// Each factory's numbers are of its kind, and so is each zero
+static void kinds(void) {
+  kind([NXNumber zeroValue], NO, NO);
+  kind([NXNumber numberWithInt16:0], NO, NO);
+  kind([NXNumber numberWithInt32:0], NO, NO);
+  kind([NXNumber numberWithInt64:0], NO, NO);
+  kind([NXNumber numberWithUnsignedInt16:0], NO, YES);
+  kind([NXNumber numberWithUnsignedInt32:0], NO, YES);
+  kind([NXNumber numberWithUnsignedInt64:0], NO, YES);
+  kind([NXNumber numberWithFloat32:0], YES, NO);
+  kind([NXNumber numberWithFloat64:0], YES, NO);
+  kind([NXNumber numberWithFloat32:-0.0f], YES, NO);
+  kind([NXNumber numberWithFloat64:-0.0], YES, NO);
+
+  kind([NXNumber numberWithInt16:-1], NO, NO);
+  kind([NXNumber numberWithInt32:1], NO, NO);
+  kind([NXNumber numberWithInt64:INT64_MIN], NO, NO);
+  kind([NXNumber numberWithUnsignedInt16:1], NO, YES);
+  kind([NXNumber numberWithUnsignedInt32:UINT32_MAX], NO, YES);
+  kind([NXNumber numberWithUnsignedInt64:UINT64_MAX], NO, YES);
+  kind([NXNumber numberWithFloat32:1.5f], YES, NO);
+  kind([NXNumber numberWithFloat64:-2.5], YES, NO);
+
+  kind([NXNumber trueValue], NO, NO);
+  kind([NXNumber falseValue], NO, NO);
 }
 
 // There's only one of each zero, true and false, and they don't need a pool. The
@@ -273,6 +308,7 @@ test_main(0) {
   statics();
   numbers();
   floats();
+  kinds();
   randoms();
   NXNumber *kept = [[NXNumber numberWithInt32:-7] retain];
   [pool release];
