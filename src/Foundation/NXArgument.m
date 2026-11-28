@@ -25,9 +25,7 @@
   } else if (object_isKindOfClass(value, [NXNumber class])) {
     if ([(NXNumber *)value isFloat]) {
       type = sys_env_arg_type_float;
-    } else if (object_isKindOfClass(value, [NXNumberUnsignedInt16 class]) ||
-               object_isKindOfClass(value, [NXNumberUnsignedInt32 class]) ||
-               object_isKindOfClass(value, [NXNumberUnsignedInt64 class])) {
+    } else if ([(NXNumber *)value isUnsigned]) {
       type = sys_env_arg_type_uint;
     } else {
       type = sys_env_arg_type_int;

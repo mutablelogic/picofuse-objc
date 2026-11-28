@@ -41,6 +41,39 @@ test_main(0) {
   test_assert([NXArgument argumentWithName:@"x" short:@""] == nil);
   test_assert([NXArgument argumentWithName:@"x" short:nil default:nil] == nil);
   test_assert([NXArgument argumentWithName:@"x" short:nil default:[NXArray array]] == nil);
+  // Zero defaults keep their kind, so these are a float and an unsigned flag
+  NXArray *zeros = [NXArray
+      arrayWithObjects:[NXArgument argumentWithName:@"rate" short:nil
+                                            default:[NXNumber numberWithFloat64:0]],
+                       [NXArgument argumentWithName:@"size" short:nil
+                                            default:[NXNumber numberWithUnsignedInt32:0]],
+                       [NXArgument argumentWithName:@"offset" short:nil
+                                            default:[NXNumber numberWithInt32:0]],
+                       nil];
+#if !defined(SYSTEM_NAME_PICO)
+  NXStream *zeroUsage = [NXStream streamWithCapacity:256];
+  test_assert([[NXEnvironment environmentWithArgc:0 argv:NULL] writeUsageToStream:zeroUsage
+                                                                            flags:zeros]);
+  test_assert([zeroUsage seek:0 relative:NO]);
+  test_assert([[zeroUsage readStringWithLength:256]
+      isEqual:@"  --rate <float> (default: 0)\n"
+              @"  --size <uint> (default: 0)\n"
+              @"  --offset <int> (default: 0)\n"]);
+  {
+    static char *argv[] = {"prog", "--rate=1.5", "--offset=-2", NULL};
+    NXEnvironment *zeroEnvironment = [NXEnvironment environmentWithArgc:3 argv:argv];
+    NXMap *zeroValues = [zeroEnvironment parseFlags:zeros error:&error];
+    test_assert(zeroValues != nil && error == nil);
+    test_assert([[zeroValues objectForKey:@"rate"] float64Value] == 1.5);
+    test_assert([[zeroValues objectForKey:@"offset"] int64Value] == -2);
+    static char *negative[] = {"prog", "--size=-1", NULL};
+    zeroEnvironment = [NXEnvironment environmentWithArgc:2 argv:negative];
+    test_assert([zeroEnvironment parseFlags:zeros error:&error] == nil && error != nil);
+  }
+#else
+  (void)zeros;
+#endif
+
   NXArgument *flag = [NXArgument argumentWithName:@"count" short:@"n"];
   test_assert([[flag name] isEqual:@"count"] && [[flag shortName] isEqual:@"n"]);
 

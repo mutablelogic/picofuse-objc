@@ -17,9 +17,6 @@
  * - a date, in ISO 8601, with an NXDate
  * - a duration, such as 1h30m, with argumentWithName:short:duration:
  *
- * NXNumber has one zero for every type, so a default of zero is a signed integer. For a
- * float or unsigned flag, the default isn't zero.
- *
  * A bool is true when it's given. The others take a value, as --name=value or
  * --name value.
  *
