@@ -1,6 +1,5 @@
 // The watchdog restarts a device whose run loop stops: the first start blocks worker 0,
-// so it isn't fed, and the start after the restart is told so. Run by hand, as the test
-// runner often doesn't see RTT again after the restart.
+// so it isn't fed, and the start after the restart is told so.
 #include <Application/Application.h>
 #include <test/test.h>
 

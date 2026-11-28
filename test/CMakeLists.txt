@@ -563,12 +563,15 @@ else()
 endif()
 
 # The watchdog restarts a device whose run loop stops, and the delegate is told. Only a
-# Pico has a watchdog to test. Not registered with ctest: the test runner often doesn't
-# see RTT again after the restart. Run it by hand, with a longer timeout:
-#   testrunner --timeout 30 --target target/<chip>.cfg test/application_004.elf
+# Pico has a watchdog to test, and the restart takes its timeout, about 8s, so longer
+# than the runner waits for.
 if(CMAKE_CROSSCOMPILING)
     objc_executable(application_004
         application_004/main.m
         LIBRARIES picofuse-objc-foundation picofuse-objc-application
     )
+    add_test(NAME application_004
+        COMMAND ${TESTRUNNER} --timeout 30 --target target/${_chip}.cfg
+                $<TARGET_FILE:application_004>)
+    set_tests_properties(application_004 PROPERTIES RESOURCE_LOCK board)
 endif()
