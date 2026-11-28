@@ -529,3 +529,9 @@ objc_test(application_001
     application_001/main.m
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
+
+# NXTimer as an event source of the application, with HID.
+objc_test(application_002
+    application_002/main.m
+    LIBRARIES picofuse-objc-foundation picofuse-objc-application
+)

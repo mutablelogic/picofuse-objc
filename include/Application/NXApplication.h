@@ -3,6 +3,7 @@
  * @brief Defines the NXApplication class, the application which runs a run loop.
  */
 #pragma once
+#include "NXEventSource.h"
 #include "NXRunLoop.h"
 #include <stdint.h>
 
@@ -49,6 +50,8 @@
   NXRunLoop *_runLoop;                    ///< Its run loop
   id<NXApplicationDelegate> _delegate;    ///< Not retained
   uint8_t _workers;                       ///< 0 for every core
+  NXArray *_sources;                      ///< Event sources which are attached
+  void *_hid;                             ///< picofuse's HID, while it runs, or NULL
 }
 
 /**
@@ -99,5 +102,22 @@
  * returns a status.
  */
 - (void)terminateWithStatus:(int)status;
+
+/**
+ * @brief Attaches an event source, such as a timer, which is retained until it's
+ * detached. It starts producing events when the application runs, or straight away if
+ * it's running, and stops when the application stops, starting again if it runs again.
+ * If it can't start when the application runs, such as when there's no HID timer left,
+ * it's detached.
+ * @return YES, or NO if it's attached already, it isn't one of the Application
+ * framework's sources, or it couldn't start.
+ */
+- (BOOL)attachEventSource:(id<NXEventSource>)source;
+
+/**
+ * @brief Detaches an event source, which stops producing events. Those it produced which
+ * haven't been handled yet aren't.
+ */
+- (void)detachEventSource:(id<NXEventSource>)source;
 
 @end
