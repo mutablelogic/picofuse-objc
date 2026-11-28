@@ -67,7 +67,7 @@
     number = 15;
     break;
   }
-  [[NXApplication sharedApplication] terminateWithStatus:128 + number];
+  [[NXApplication sharedApplication] terminateWithSignal:number];
 }
 
 @end
@@ -87,24 +87,39 @@ static void write_line(NXString *line) {
 ///////////////////////////////////////////////////////////////////////////////
 // MAIN
 
-// Parses the command line, with --help added unless there's one already. Returns
-// the flags' values, or nil with a status to return.
-static NXMap *parse(NXEnvironment *environment, NXArray *flags, int *status) {
-  NXArray *all = [NXArray array];
-  BOOL hasHelp = NO;
+// Returns YES if a flag has a name, long or short
+static BOOL has_name(NXArray *flags, NXString *name) {
   for (id flag in flags) {
     if (object_isKindOfClass(flag, [NXArgument class]) &&
-        [[(NXArgument *)flag name] isEqual:HELP]) {
-      hasHelp = YES;
+        ([[(NXArgument *)flag name] isEqual:name] ||
+         [[(NXArgument *)flag shortName] isEqual:name])) {
+      return YES;
     }
+  }
+  return NO;
+}
+
+// Parses the command line, with --help added unless a flag has that name already, and
+// -h unless a flag has that. Returns the flags' values, or nil with a status to return.
+static NXMap *parse(NXEnvironment *environment, NXArray *flags, int *status) {
+  NXArray *all = [NXArray array];
+  if (all == nil) {
+    *status = STATUS_FAILED;
+    return nil;
+  }
+  for (id flag in flags) {
     if (![all appendObject:flag]) {
       *status = STATUS_FAILED;
       return nil;
     }
   }
-  if (!hasHelp && ![all appendObject:[NXArgument argumentWithName:HELP short:@"h"]]) {
-    *status = STATUS_FAILED;
-    return nil;
+  BOOL hasHelp = has_name(flags, HELP);
+  if (!hasHelp) {
+    NXArgument *help = [NXArgument argumentWithName:HELP short:has_name(flags, @"h") ? nil : @"h"];
+    if (help == nil || ![all appendObject:help]) {
+      *status = STATUS_FAILED;
+      return nil;
+    }
   }
 
   NXString *error = nil;
@@ -188,6 +203,7 @@ int NXApplicationMain(int argc, char **argv, NXApplicationFeatures features,
     if (features & NXApplicationFeatureWatchdog) {
       watchdog = hw_watchdog_init();
       if (watchdog != NULL) {
+        [application setWatchdogReset:hw_watchdog_did_reset(watchdog)];
         hw_watchdog_enable(watchdog, true);
       } else {
         NXDebug(@"NXApplicationMain: there's no watchdog");
@@ -212,13 +228,14 @@ int NXApplicationMain(int argc, char **argv, NXApplicationFeatures features,
       hw_watchdog_deinit(watchdog);
     }
     [application setHardware:NO];
+    [application setWatchdogReset:NO];
     hw_exit();
     [application setDelegate:nil];
     [delegate release];
   }
 
+  // The system keeps running, as on a Pico sys_exit() halts, so this couldn't return
   [application setEnvironment:nil flags:nil];
   [pool release];
-  sys_exit();
   return status;
 }

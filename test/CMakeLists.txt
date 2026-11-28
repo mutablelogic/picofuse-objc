@@ -550,10 +550,28 @@ objc_executable(application_003
     LIBRARIES picofuse-objc-foundation picofuse-objc-application
 )
 if(CMAKE_CROSSCOMPILING)
-    objc_test_add(application_003 application_003)
+    # It runs for longer than the watchdog's timeout, so than the runner waits for
+    add_test(NAME application_003
+        COMMAND ${TESTRUNNER} --timeout 30 --target target/${_chip}.cfg
+                $<TARGET_FILE:application_003>)
+    set_tests_properties(application_003 PROPERTIES RESOURCE_LOCK board)
 else()
     objc_test_add(application_003 $<TARGET_FILE:application_003> --count=4 one)
     objc_test_add(application_003_help $<TARGET_FILE:application_003> --help)
     objc_test_add(application_003_bad $<TARGET_FILE:application_003> --count=abc)
     objc_test_add(application_003_other $<TARGET_FILE:application_003> other)
+endif()
+
+# The watchdog restarts a device whose run loop stops, and the delegate is told. Only a
+# Pico has a watchdog to test.
+if(CMAKE_CROSSCOMPILING)
+    objc_executable(application_004
+        application_004/main.m
+        LIBRARIES picofuse-objc-foundation picofuse-objc-application
+    )
+    # The restart takes the watchdog's timeout, so longer than the runner waits for
+    add_test(NAME application_004
+        COMMAND ${TESTRUNNER} --timeout 30 --target target/${_chip}.cfg
+                $<TARGET_FILE:application_004>)
+    set_tests_properties(application_004 PROPERTIES RESOURCE_LOCK board)
 endif()

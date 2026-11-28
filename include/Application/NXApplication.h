@@ -20,14 +20,20 @@
 /**
  * @brief Called on worker 0 when the application starts. Events can be posted from here,
  * and none are dispatched, on any worker, until it returns.
+ * @param application The application.
+ * @param reset YES if the watchdog restarted the device, which is only so when
+ * NXApplicationMain started the watchdog.
  */
-- (void)applicationDidStart:(NXApplication *)application;
+- (void)applicationDidStart:(NXApplication *)application watchdogReset:(BOOL)reset;
 
 /**
  * @brief Called on the thread which ran the application, once it has been terminated,
  * every event which was posted has been dispatched, and every worker has finished.
+ * @param application The application.
+ * @param signal The number of the signal which terminated it, such as 15 for TERM, or 0
+ * if it wasn't one. Signals only terminate it when NXApplicationMain handles them.
  */
-- (void)applicationWillTerminate:(NXApplication *)application;
+- (void)applicationWillTerminate:(NXApplication *)application signal:(int)signal;
 
 /**
  * @brief Returns the NXArgument flags which can be given on the command line, for
@@ -61,6 +67,8 @@
   NXEnvironment *_environment;            ///< From NXApplicationMain, or nil
   NXMap *_flags;                          ///< The flags' values, from NXApplicationMain
   BOOL _hardware;                         ///< YES to poll picofuse's hardware
+  BOOL _watchdogReset;                    ///< YES if the watchdog restarted the device
+  int _signal;                            ///< The signal which terminated it, or 0
 }
 
 /**
@@ -172,9 +180,11 @@ typedef enum {
  * @param features The features to start.
  * @param delegateClass The class of the delegate, which conforms to
  * NXApplicationDelegate, and is made with alloc and init. Its flags are from
- * +commandLineFlags, to which --help, -h is added, which writes usage.
+ * +commandLineFlags, to which --help, -h is added, which writes usage: --help unless a
+ * flag has that name already, and -h unless a flag has that.
  * @return The status it was terminated with, 0 after --help, 2 if the command line
- * doesn't parse, or 1 if the delegate can't be made.
+ * doesn't parse, or 1 if the delegate can't be made. The system is still running, so
+ * standard output can be written to, and returning from main() ends the program.
  *
  * \code
  * @implementation Controller

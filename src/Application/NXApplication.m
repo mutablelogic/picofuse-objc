@@ -14,14 +14,6 @@ static NXApplication *shared = nil;
 - (void)pollHID;
 @end
 
-// Sends an optional message to a delegate, if it has the method
-static void tell(id delegate, SEL selector, id argument) {
-  if (delegate != nil && class_respondsToSelector(object_getClass(delegate), selector)) {
-    void (*imp)(void) = (void (*)(void))objc_msg_lookup(delegate, selector);
-    ((void (*)(id, SEL, id))imp)(delegate, selector, argument);
-  }
-}
-
 // The run loop's event handler and poll function, for HID
 static BOOL handle_event(sys_event_t event) {
   return [shared handleHIDEvent:event];
@@ -84,6 +76,7 @@ static size_t index_of(NXArray *array, id object) {
 }
 
 - (int)run {
+  _signal = 0;
   return [_runLoop runWithWorkers:_workers];
 }
 
@@ -176,14 +169,22 @@ static size_t index_of(NXArray *array, id object) {
     }
   }
   (void)failed; // released with the pool, outside the lock
-  tell(_delegate, @selector(applicationDidStart:), self);
+  SEL selector = @selector(applicationDidStart:watchdogReset:);
+  if (_delegate != nil && class_respondsToSelector(object_getClass(_delegate), selector)) {
+    void (*imp)(void) = (void (*)(void))objc_msg_lookup(_delegate, selector);
+    ((void (*)(id, SEL, id, BOOL))imp)(_delegate, selector, self, _watchdogReset);
+  }
 }
 
 // Once every worker has finished, the delegate is told, then every source is detached
 // and HID stops
 - (void)runLoopWillStop:(NXRunLoop *)runLoop {
   (void)runLoop;
-  tell(_delegate, @selector(applicationWillTerminate:), self);
+  SEL selector = @selector(applicationWillTerminate:signal:);
+  if (_delegate != nil && class_respondsToSelector(object_getClass(_delegate), selector)) {
+    void (*imp)(void) = (void (*)(void))objc_msg_lookup(_delegate, selector);
+    ((void (*)(id, SEL, id, int))imp)(_delegate, selector, self, _signal);
+  }
   @synchronized(self) {
     for (id<NXEventSourcePrivate> source in _sources) {
       [source detachFromHID:_hid];
@@ -242,6 +243,15 @@ static size_t index_of(NXArray *array, id object) {
 
 - (void)setHardware:(BOOL)hardware {
   _hardware = hardware;
+}
+
+- (void)setWatchdogReset:(BOOL)reset {
+  _watchdogReset = reset;
+}
+
+- (void)terminateWithSignal:(int)signal {
+  _signal = signal;
+  [self terminateWithStatus:128 + signal];
 }
 
 @end
